@@ -90,6 +90,7 @@ class MainViewModel(
 
             faceDetector.process(image)
                 .addOnSuccessListener { faces ->
+                    Log.d("faceDetectionDebug", "wajak terseteksi ${faces.size}" )
                     viewModelScope.launch(Dispatchers.Default) {
                         if (faces.isEmpty()) {
                             Log.d("DBG", "Faces=0, schedule clear recognitions")

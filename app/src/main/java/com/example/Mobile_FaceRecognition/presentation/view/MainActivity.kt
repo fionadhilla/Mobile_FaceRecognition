@@ -187,7 +187,7 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
                         CROP_SIZE, CROP_SIZE,
                         sensorOrientation, true
                     )
-                    cropToFrameTransform = Matrix().apply { frameToCropTransform.invert(this) }
+                    cropToFrameTransform = Matrix().also { frameToCropTransform.invert(it) }
 
                     trackingOverlay = overlay
                     trackingOverlay.addCallback { canvas -> tracker.draw(canvas) }
@@ -199,7 +199,7 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
                         viewModel.mappedRecognitions.observe(this@MainActivity) { recognitions ->
                             Log.d("DBG", "processResults size=${recognitions.size}")
                             tracker.trackResults(recognitions, System.currentTimeMillis())
-                            trackingOverlay.invalidate()
+                            trackingOverlay.postInvalidate()
                         }
                         recognitionsObserverAttached = true
                     }

@@ -7,6 +7,7 @@ import android.util.Log
 import android.util.Pair
 import android.util.TypedValue
 import com.example.Mobile_FaceRecognition.domain.model.FaceRecognition
+import com.example.Mobile_FaceRecognition.utils.ImageUtils
 import java.util.LinkedList
 import kotlin.math.max
 import kotlin.math.min
@@ -64,6 +65,7 @@ class MultiBoxTracker(context: Context) {
     fun trackResults(results: List<FaceRecognition>, timestamp: Long) {
         if (!isConfigured) {
             Log.w(TAG, "Tracker not configured yet, skip trackResults.")
+            Log.d("DBG_TR","track size=${results.size}")
             return
         }
         processResults(results)
@@ -81,6 +83,7 @@ class MultiBoxTracker(context: Context) {
         for (rec in trackedObjects) {
             val trackedPos = RectF(rec.location)
             matrix.mapRect(trackedPos)
+            Log.d("DBG_POS", "rect=$trackedPos  canvas=${canvas.width}x${canvas.height}")
 
             boxPaint.color = rec.color
             val corner = min(trackedPos.width(), trackedPos.height()) / 8f
@@ -95,26 +98,28 @@ class MultiBoxTracker(context: Context) {
                 canvas, trackedPos.left + corner, trackedPos.top, label, boxPaint
             )
         }
+        Log.d("DBG_TR","draw size=${trackedObjects.size}")
     }
 
     private fun rebuildMatrixIfNeeded(canvas: Canvas) {
-        val m = Matrix()
+        val rotated = sensorOrientation % 180 == 90
 
-        // 1. rotate seputar (0,0)
-        if (sensorOrientation != 0) m.postRotate(sensorOrientation.toFloat())
+        val multiplier = min(
+            canvas.height / (if (rotated) frameWidth  else frameHeight).toFloat(),
+            canvas.width  / (if (rotated) frameHeight else frameWidth ).toFloat()
+        )
 
-        // 2. center‑crop (fill) – scale X dan Y berbeda
-        val scaleX = canvas.width  / frameWidth.toFloat()
-        val scaleY = canvas.height / frameHeight.toFloat()
-        val scale  = max(scaleX, scaleY)
-        m.postScale(scale, scale)
+        val dstW = (multiplier * (if (rotated) frameHeight else frameWidth )).toInt()
+        val dstH = (multiplier * (if (rotated) frameWidth  else frameHeight)).toInt()
 
-        // 3. translate agar tengah
-        val dx = (canvas.width  - frameWidth * scale) / 2f
-        val dy = (canvas.height - frameHeight * scale) / 2f
-        m.postTranslate(dx, dy)
-
-        frameToCanvasMatrix = m
+        frameToCanvasMatrix = ImageUtils.getTransformationMatrix(
+            frameWidth,
+            frameHeight,
+            dstW,
+            dstH,
+            sensorOrientation,
+            /*maintainAspect=*/ false   // sama seperti kode Java asli
+        )
     }
 
     private fun processResults(results: List<FaceRecognition>) {
@@ -130,8 +135,6 @@ class MultiBoxTracker(context: Context) {
             val screenRect = RectF(loc)
             rgbToScreen.mapRect(screenRect)
             screenRects.add(Pair(result.distance ?: 0f, screenRect))
-
-            if (loc.width() < MIN_SIZE || loc.height() < MIN_SIZE) continue
             rectsToTrack.add(Pair(result.distance ?: 0f, result))
         }
 

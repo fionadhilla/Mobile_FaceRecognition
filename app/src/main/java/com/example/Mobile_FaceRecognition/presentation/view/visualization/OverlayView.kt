@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import java.util.LinkedList
 
@@ -16,18 +17,13 @@ class OverlayView @JvmOverloads constructor(
 
     fun addCallback(callback: (Canvas) -> Unit) {
         callbacks.add(callback)
+        setWillNotDraw(false)
     }
 
     @SuppressLint("MissingSuperCall")
     @Synchronized
-    override fun draw(canvas: Canvas) {
-        for (callback in callbacks) {
-            callback(canvas)
-        }
-    }
-
-    /** Interface defining the callback for client classes. */
-    fun interface DrawCallback {
-        fun drawCallback(canvas: Canvas)
+    override fun onDraw(canvas: Canvas) {
+        for (cb in callbacks) cb(canvas)
+        Log.d("DBG_OV","onDraw")
     }
 }
