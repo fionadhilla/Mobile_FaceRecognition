@@ -1,4 +1,4 @@
-package com.example.myapplication4.notifikasi
+package com.example.myapplication4.ui.notifikasi
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
