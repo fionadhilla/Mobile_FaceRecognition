@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.myapplication4"
-    compileSdk = 34
+    namespace = "com.example.Mobile_FaceRecognition"
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.myapplication4"
+        applicationId = "com.example.Mobile_FaceRecognition"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -33,6 +33,14 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    packaging {
+        resources {
+            aaptOptions {
+                noCompress ("tflite")
+            }
+        }
+    }
 }
 
 dependencies {
@@ -45,4 +53,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation ("org.tensorflow:tensorflow-lite:+")
+    implementation ("com.google.mlkit:face-detection:16.1.7")
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.sse)
+    implementation ("androidx.activity:activity-ktx:1.8.2")
 }

@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "My Application4"
+rootProject.name = "Mobile_FaceRecognition"
 include(":app")
  
