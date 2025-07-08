@@ -77,12 +77,12 @@ class MultiBoxTracker(context: Context) {
             Log.w(TAG, "Tracker not configured yet, skip draw.")
             return
         }
-        rebuildMatrixIfNeeded(canvas)
+        rebuildMatrixIfNeeded(canvas) // Membangun ulang matriks transformasi
         val matrix = frameToCanvasMatrix ?: return
 
         for (rec in trackedObjects) {
             val trackedPos = RectF(rec.location)
-            matrix.mapRect(trackedPos)
+            matrix.mapRect(trackedPos) // Mengaplikasikan transformasi ke bounding box
             Log.d("DBG_POS", "rect=$trackedPos  canvas=${canvas.width}x${canvas.height}")
 
             boxPaint.color = rec.color
@@ -102,39 +102,25 @@ class MultiBoxTracker(context: Context) {
     }
 
     private fun rebuildMatrixIfNeeded(canvas: Canvas) {
-        val rotated = sensorOrientation % 180 == 90
-
-        val multiplier = min(
-            canvas.height / (if (rotated) frameWidth  else frameHeight).toFloat(),
-            canvas.width  / (if (rotated) frameHeight else frameWidth ).toFloat()
-        )
-
-        val dstW = (multiplier * (if (rotated) frameHeight else frameWidth )).toInt()
-        val dstH = (multiplier * (if (rotated) frameWidth  else frameHeight)).toInt()
 
         frameToCanvasMatrix = ImageUtils.getTransformationMatrix(
             frameWidth,
             frameHeight,
-            dstW,
-            dstH,
+            canvas.width,
+            canvas.height,
             sensorOrientation,
-            /*maintainAspect=*/ false   // sama seperti kode Java asli
+            /*maintainAspect=*/ true
         )
     }
 
     private fun processResults(results: List<FaceRecognition>) {
         Log.d("DBG", "processResults size=${results.size}")
-        val matrix = frameToCanvasMatrix ?: return
         val rectsToTrack = LinkedList<Pair<Float, FaceRecognition>>()
 
         screenRects.clear()
-        val rgbToScreen = Matrix(matrix)
 
         for (result in results) {
             val loc = result.location ?: continue
-            val screenRect = RectF(loc)
-            rgbToScreen.mapRect(screenRect)
-            screenRects.add(Pair(result.distance ?: 0f, screenRect))
             rectsToTrack.add(Pair(result.distance ?: 0f, result))
         }
 
@@ -144,7 +130,7 @@ class MultiBoxTracker(context: Context) {
         for (cand in rectsToTrack) {
             val tr = TrackedRecognition().apply {
                 detectionConfidence = cand.first
-                location = RectF(cand.second.location)
+                location = RectF(cand.second.location) // Location already in frame coordinates
                 title = cand.second.title
                 color = COLORS[trackedObjects.size % COLORS.size]
             }

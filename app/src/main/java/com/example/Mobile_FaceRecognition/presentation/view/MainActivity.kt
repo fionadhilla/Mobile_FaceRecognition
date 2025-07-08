@@ -264,7 +264,8 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
             previewWidth,
             previewHeight,
             cropToFrameTransform,
-            isFrontCameraActive
+            isFrontCameraActive,
+            sensorOrientation
         )
 
         postInferenceCallback.run()

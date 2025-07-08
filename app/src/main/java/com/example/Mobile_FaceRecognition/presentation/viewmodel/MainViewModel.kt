@@ -83,7 +83,8 @@ class MainViewModel(
         previewWidth: Int,
         previewHeight: Int,
         cropToFrameTransform: Matrix,
-        isFrontCamera: Boolean
+        isFrontCamera: Boolean,
+        sensorOrientation: Int // Tambahkan parameter sensorOrientation
     ) {
         viewModelScope.launch {
             val image = InputImage.fromBitmap(croppedBitmap, 0)
@@ -117,7 +118,7 @@ class MainViewModel(
                             if (isRegisteringFace) {
                                 _uiEvent.emit(UiEvent.ShowRegistrationDialog(croppedFace, result))
                                 isRegisteringFace = false
-                                continue          // skip tracker saat registrasi
+                                continue
                             }
 
                             // hitung label & confidence
@@ -128,22 +129,26 @@ class MainViewModel(
                                 confidence = result.distance
                             }
 
-                            // mirror untuk kamera depan
                             val location = RectF(bounds)
-                            if (isFrontCamera) {
-                                val tmp = location.left
-                                location.left  = CROP_SIZE - location.right
-                                location.right = CROP_SIZE - tmp
+
+                            cropToFrameTransform.mapRect(location) //
+
+                            val rotated = sensorOrientation % 180 == 90 //
+                            val frameWidthForMirroring = if (rotated) previewHeight else previewWidth //
+
+                            if (isFrontCamera) { //
+                                val tmp = location.left //
+                                location.left = frameWidthForMirroring - location.right //
+                                location.right = frameWidthForMirroring - tmp //
                             }
 
-                            cropToFrameTransform.mapRect(location)
 
                             newRecognitions.add(
                                 FaceRecognition(
                                     id        = face.trackingId?.toString() ?: "N/A",
                                     title     = title,
                                     distance  = confidence,
-                                    location  = location,
+                                    location  = location, // location sekarang dalam koordinat frame asli
                                     embedding = result.embedding,
                                     crop      = result.crop
                                 )
@@ -169,8 +174,6 @@ class MainViewModel(
         viewModelScope.launch {
             val success = registerFaceUseCase(name, embedding)
             if (success) {
-                // Local registration in TFLite model, if still needed after server registration
-                // tfliteSource.register(name, FaceRecognition(title = name, embedding = embedding))
                 _uiEvent.emit(UiEvent.ShowToast("Face Registered Successfully"))
             } else {
                 _uiEvent.emit(UiEvent.ShowToast("Face Registration Failed"))
@@ -184,7 +187,6 @@ class MainViewModel(
     }
 
     private fun cropFaceBitmap(input: Bitmap, bounds: Rect): Bitmap? {
-        // Ensure bounds are within bitmap dimensions
         val safeBounds = Rect(bounds)
         safeBounds.left = safeBounds.left.coerceAtLeast(0)
         safeBounds.top = safeBounds.top.coerceAtLeast(0)

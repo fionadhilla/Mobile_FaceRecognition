@@ -10,8 +10,6 @@ import java.nio.ByteBuffer
 
 
 object ImageUtils {
-    // This value is 2 ^ 18 - 1, and is used to clamp the RGB values before their ranges
-    // are normalized to eight bits.
     private const val kMaxChannelValue = 262143
 
     /**
@@ -19,11 +17,7 @@ object ImageUtils {
      * dimensions.
      */
     fun getYUVByteSize(width: Int, height: Int): Int {
-        // The luminance plane requires 1 byte per pixel.
         val ySize = width * height
-
-        // The UV plane works on 2x2 blocks, so dimensions with odd size must be rounded up.
-        // Each 2x2 block takes 2 bytes to encode, one each for U and V.
         val uvSize = ((width + 1) / 2) * ((height + 1) / 2) * 2
 
         return ySize + uvSize
@@ -142,18 +136,13 @@ object ImageUtils {
 
         if (applyRotation != 0) {
             if (applyRotation % 90 != 0) {
-                //LOGGER.w("Rotation of %d % 90 != 0", applyRotation);
             }
 
-            // Translate so center of image is at origin.
             matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f)
 
-            // Rotate around origin.
             matrix.postRotate(applyRotation.toFloat())
         }
 
-        // Account for the already applied rotation, if any, and then determine how
-        // much scaling is needed for each axis.
         val transpose = (kotlin.math.abs(applyRotation) + 90) % 180 == 0
 
         val inWidth = if (transpose) srcHeight else srcWidth
@@ -165,10 +154,8 @@ object ImageUtils {
             val scaleFactorY = dstHeight / inHeight.toFloat()
 
             if (maintainAspectRatio) {
-                // Scale by minimum factor so that dst is filled completely while
-                // maintaining the aspect ratio. Some image may fall off the edge.
-                val scaleFactor = kotlin.math.max(scaleFactorX, scaleFactorY)
-                matrix.postScale(scaleFactor, scaleFactor)
+                val scaleFactor = kotlin.math.min(scaleFactorX, scaleFactorY) //
+                matrix.postScale(scaleFactor, scaleFactor) //
             } else {
                 // Scale exactly to fill dst from src.
                 matrix.postScale(scaleFactorX, scaleFactorY)
@@ -184,8 +171,6 @@ object ImageUtils {
     }
 
     fun fillBytes(planes: Array<Image.Plane>, yuvBytes: Array<ByteArray?>) {
-        // Because of the variable row stride it's not possible to know in
-        // advance the actual necessary dimensions of the yuv planes.
         for (i in planes.indices) {
             val buffer = planes[i].buffer
             if (yuvBytes[i] == null || yuvBytes[i]!!.size != buffer.capacity()) {
