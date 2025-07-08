@@ -27,6 +27,7 @@ class MultiBoxTracker(context: Context) {
     private var frameWidth = 0
     private var frameHeight = 0
     private var sensorOrientation = 0
+    private var isFrontCamera = false // Tambahkan variabel untuk mengetahui apakah kamera depan aktif
     private var isConfigured = false
 
     init {
@@ -47,10 +48,11 @@ class MultiBoxTracker(context: Context) {
     // ══════════════════════════ public api ══════════════════════════════
 
     @Synchronized
-    fun setFrameConfiguration(width: Int, height: Int, sensorOrientation: Int) {
+    fun setFrameConfiguration(width: Int, height: Int, sensorOrientation: Int, isFrontCamera: Boolean) {
         frameWidth = width
         frameHeight = height
         this.sensorOrientation = sensorOrientation
+        this.isFrontCamera = isFrontCamera // Set status kamera depan
         isConfigured = true
     }
 
@@ -77,12 +79,28 @@ class MultiBoxTracker(context: Context) {
             Log.w(TAG, "Tracker not configured yet, skip draw.")
             return
         }
-        rebuildMatrixIfNeeded(canvas) // Membangun ulang matriks transformasi
+        // Gunakan fungsi getFrameToCanvasMatrix baru dari ImageUtils
+        frameToCanvasMatrix = ImageUtils.getFrameToCanvasMatrix(
+            frameWidth,
+            frameHeight,
+            canvas.width,
+            canvas.height,
+            sensorOrientation,
+            isFrontCamera // Teruskan status kamera depan
+        )
         val matrix = frameToCanvasMatrix ?: return
 
         for (rec in trackedObjects) {
             val trackedPos = RectF(rec.location)
             matrix.mapRect(trackedPos) // Mengaplikasikan transformasi ke bounding box
+
+            // Logika untuk memastikan bounding box tetap dalam batas kanvas
+            trackedPos.left = trackedPos.left.coerceAtLeast(0f)
+            trackedPos.top = trackedPos.top.coerceAtLeast(0f)
+            trackedPos.right = trackedPos.right.coerceAtMost(canvas.width.toFloat())
+            trackedPos.bottom = trackedPos.bottom.coerceAtMost(canvas.height.toFloat())
+
+
             Log.d("DBG_POS", "rect=$trackedPos  canvas=${canvas.width}x${canvas.height}")
 
             boxPaint.color = rec.color
@@ -99,18 +117,6 @@ class MultiBoxTracker(context: Context) {
             )
         }
         Log.d("DBG_TR","draw size=${trackedObjects.size}")
-    }
-
-    private fun rebuildMatrixIfNeeded(canvas: Canvas) {
-
-        frameToCanvasMatrix = ImageUtils.getTransformationMatrix(
-            frameWidth,
-            frameHeight,
-            canvas.width,
-            canvas.height,
-            sensorOrientation,
-            /*maintainAspect=*/ true
-        )
     }
 
     private fun processResults(results: List<FaceRecognition>) {
@@ -130,7 +136,8 @@ class MultiBoxTracker(context: Context) {
         for (cand in rectsToTrack) {
             val tr = TrackedRecognition().apply {
                 detectionConfidence = cand.first
-                location = RectF(cand.second.location) // Location already in frame coordinates
+                // Lokasi sudah dalam koordinat frame asli dan sudah dicerminkan jika kamera depan
+                location = RectF(cand.second.location)
                 title = cand.second.title
                 color = COLORS[trackedObjects.size % COLORS.size]
             }

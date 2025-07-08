@@ -124,6 +124,19 @@ object ImageUtils {
         }
     }
 
+    /**
+     * Mengembalikan matriks transformasi yang memetakan koordinat dari sumber
+     * ke koordinat tujuan, dengan memperhitungkan rotasi dan pemeliharaan aspek rasio.
+     * Matriks ini cocok untuk mengubah gambar mentah kamera menjadi bitmap yang diputar/dipotong.
+     *
+     * @param srcWidth Lebar sumber (misalnya, lebar pratinjau kamera).
+     * @param srcHeight Tinggi sumber (misalnya, tinggi pratinjau kamera).
+     * @param dstWidth Lebar tujuan (misalnya, lebar croppedBitmap).
+     * @param dstHeight Tinggi tujuan (misalnya, tinggi croppedBitmap).
+     * @param applyRotation Rotasi yang akan diterapkan pada sumber (misalnya, sensorOrientation).
+     * @param maintainAspectRatio Jika true, skala akan mempertahankan aspek rasio, mungkin
+     * menghasilkan letterboxing/pillarboxing pada tujuan.
+     */
     fun getTransformationMatrix(
         srcWidth: Int,
         srcHeight: Int,
@@ -134,15 +147,13 @@ object ImageUtils {
     ): Matrix {
         val matrix = Matrix()
 
-        if (applyRotation != 0) {
-            if (applyRotation % 90 != 0) {
-            }
+        // Translate the coordinate system origin to the center of the source rectangle
+        matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f)
 
-            matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f)
+        // Apply rotation around the center
+        matrix.postRotate(applyRotation.toFloat())
 
-            matrix.postRotate(applyRotation.toFloat())
-        }
-
+        // Determine if the dimensions are transposed after rotation (e.g., 90 or 270 degrees)
         val transpose = (kotlin.math.abs(applyRotation) + 90) % 180 == 0
 
         val inWidth = if (transpose) srcHeight else srcWidth
@@ -154,17 +165,56 @@ object ImageUtils {
             val scaleFactorY = dstHeight / inHeight.toFloat()
 
             if (maintainAspectRatio) {
-                val scaleFactor = kotlin.math.min(scaleFactorX, scaleFactorY) //
-                matrix.postScale(scaleFactor, scaleFactor) //
+                val scaleFactor = kotlin.math.min(scaleFactorX, scaleFactorY)
+                matrix.postScale(scaleFactor, scaleFactor)
             } else {
-                // Scale exactly to fill dst from src.
                 matrix.postScale(scaleFactorX, scaleFactorY)
             }
         }
 
-        if (applyRotation != 0) {
-            // Translate back from origin centered reference to destination frame.
-            matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f)
+        matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f)
+
+        return matrix
+    }
+
+    /**
+     * Mengembalikan matriks transformasi yang akan memetakan koordinat dari frame kamera asli
+     * (ukuran previewWidth x previewHeight) ke koordinat piksel pada OverlayView (ukuran canvas.width x canvas.height).
+     * Ini memperhitungkan rotasi sensor, penskalaan untuk mengisi TextureView sambil mempertahankan
+     * aspek rasio (FIT), dan pencerminan untuk kamera depan.
+     *
+     * @param frameWidth Lebar frame pratinjau kamera (previewWidth).
+     * @param frameHeight Tinggi frame pratinjau kamera (previewHeight).
+     * @param canvasWidth Lebar kanvas OverlayView (textureView.width).
+     * @param canvasHeight Tinggi kanvas OverlayView (textureView.height).
+     * @param sensorOrientation Orientasi sensor kamera.
+     * @param isFrontCamera True jika kamera depan sedang digunakan.
+     * @return Matriks yang dapat digunakan untuk mentransformasi RectF.
+     */
+    fun getFrameToCanvasMatrix(
+        frameWidth: Int,
+        frameHeight: Int,
+        canvasWidth: Int,
+        canvasHeight: Int,
+        sensorOrientation: Int,
+        isFrontCamera: Boolean
+    ): Matrix {
+        val matrix = Matrix()
+
+        val scaleX = canvasWidth.toFloat() / frameWidth
+        val scaleY = canvasHeight.toFloat() / frameHeight
+        val scale = kotlin.math.min(scaleX, scaleY)
+
+        val scaledFrameWidth = frameWidth * scale
+        val scaledFrameHeight = frameHeight * scale
+        val translateX = (canvasWidth - scaledFrameWidth) / 2.0f
+        val translateY = (canvasHeight - scaledFrameHeight) / 2.0f
+
+        matrix.postScale(scale, scale)
+        matrix.postTranslate(translateX, translateY)
+
+        if (isFrontCamera) {
+            matrix.postScale(-1f, 1f, canvasWidth / 2f, canvasHeight / 2f)
         }
 
         return matrix

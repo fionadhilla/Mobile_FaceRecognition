@@ -82,23 +82,25 @@ class MainViewModel(
         croppedBitmap: Bitmap,
         previewWidth: Int,
         previewHeight: Int,
+        frameToCropTransform: Matrix,
         cropToFrameTransform: Matrix,
         isFrontCamera: Boolean,
-        sensorOrientation: Int // Tambahkan parameter sensorOrientation
+        sensorOrientation: Int
     ) {
         viewModelScope.launch {
             val image = InputImage.fromBitmap(croppedBitmap, 0)
 
             faceDetector.process(image)
                 .addOnSuccessListener { faces ->
-                    Log.d("faceDetectionDebug", "wajak terseteksi ${faces.size}" )
+                    Log.d("faceDetectionDebug", "wajak terdeteksi ${faces.size}" )
                     viewModelScope.launch(Dispatchers.Default) {
                         if (faces.isEmpty()) {
                             Log.d("DBG", "Faces=0, schedule clear recognitions")
                             clearJob?.cancel()
                             clearJob = launch {
                                 delay(500)
-                                if (_mappedRecognitions.value?.isEmpty() != false) {
+                                // Only clear if there are existing recognitions.
+                                if (_mappedRecognitions.value?.isNotEmpty() == true) { // Changed to check if not empty
                                     _mappedRecognitions.postValue(emptyList())
                                     Log.d("DBG", "Clear recognitions executed after delay")
                                 }
@@ -110,8 +112,8 @@ class MainViewModel(
 
                         val newRecognitions = mutableListOf<FaceRecognition>()
                         for (face in faces) {
-                            val bounds = face.boundingBox
-                            val croppedFace = cropFaceBitmap(croppedBitmap, bounds) ?: continue
+                            val boundsInCroppedBitmap = face.boundingBox // Bounds are relative to croppedBitmap
+                            val croppedFace = cropFaceBitmap(croppedBitmap, boundsInCroppedBitmap) ?: continue
 
                             val result = recognizeFaceUseCase(croppedFace, isRegisteringFace) ?: continue
 
@@ -121,41 +123,38 @@ class MainViewModel(
                                 continue
                             }
 
-                            // hitung label & confidence
+                            val locationInOriginalFrame = RectF(boundsInCroppedBitmap)
+                            cropToFrameTransform.mapRect(locationInOriginalFrame)
+
+                            if (isFrontCamera) {
+                                val tmp = locationInOriginalFrame.left
+                                locationInOriginalFrame.left = previewWidth - locationInOriginalFrame.right
+                                locationInOriginalFrame.right = previewWidth - tmp
+                            }
+
+
+                            // Calculate label & confidence
                             var title = "Unknown"
                             var confidence = 0f
-                            if (result.distance != null && result.distance < 0.75f) {
+                            // The threshold 0.75f is arbitrary, adjust based on model performance
+                            if (result.distance != null && result.distance < 0.75f) { // Lower distance means better match
                                 title = result.title
-                                confidence = result.distance
+                                confidence = result.distance // Use distance as confidence for now, inverse might be better
                             }
-
-                            val location = RectF(bounds)
-
-                            cropToFrameTransform.mapRect(location) //
-
-                            val rotated = sensorOrientation % 180 == 90 //
-                            val frameWidthForMirroring = if (rotated) previewHeight else previewWidth //
-
-                            if (isFrontCamera) { //
-                                val tmp = location.left //
-                                location.left = frameWidthForMirroring - location.right //
-                                location.right = frameWidthForMirroring - tmp //
-                            }
-
 
                             newRecognitions.add(
                                 FaceRecognition(
                                     id        = face.trackingId?.toString() ?: "N/A",
                                     title     = title,
-                                    distance  = confidence,
-                                    location  = location, // location sekarang dalam koordinat frame asli
+                                    distance  = confidence, // This is the distance from the recognition model
+                                    location  = locationInOriginalFrame, // Location now in original frame coordinates
                                     embedding = result.embedding,
                                     crop      = result.crop
                                 )
                             )
                         }
 
-                        // 3. kirim ke LiveData (bisa kosong jika tak ada wajah valid)
+                        // Post to LiveData (can be empty if no valid faces)
                         _mappedRecognitions.postValue(newRecognitions)
                         Log.d("DBG", "Faces=${faces.size}, recognitions=${newRecognitions.size}")
                     }
@@ -166,7 +165,6 @@ class MainViewModel(
                         _uiEvent.emit(UiEvent.ShowToast("Face detection failed: ${e.message}"))
                     }
                 }
-
         }
     }
 

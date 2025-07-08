@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
 
     // ─────────── konfigurasi umum ───────────
     private val TEXT_SIZE_DIP = 10f
-    private val CROP_SIZE = 1000
+    private val CROP_SIZE = 160 // Ukuran input untuk model TFLite FaceNet
     private val KEY_USE_FACING = "use_facing"
 
     // ─────────── kamera & tampilan ───────────
@@ -166,7 +166,7 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
                 ) {
                     previewHeight = size.height
                     previewWidth = size.width
-                    sensorOrientation = (rotation + 270) % 360
+                    sensorOrientation = (rotation + 270) % 360 // Adjust for sensor orientation
                     isFrontCameraActive = isFrontFacing
 
                     val textSizePx = TypedValue.applyDimension(
@@ -179,25 +179,31 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
                     rgbFrameBitmap = Bitmap.createBitmap(
                         previewWidth, previewHeight, Bitmap.Config.ARGB_8888
                     )
-                    croppedBitmap =
-                        Bitmap.createBitmap(CROP_SIZE, CROP_SIZE, Bitmap.Config.ARGB_8888)
+                    // The croppedBitmap will be the input for the TFLite model and ML Kit FaceDetector
+                    // Its size should match the input size of your TFLite model (e.g., 160x160 for FaceNet)
+                    croppedBitmap = Bitmap.createBitmap(CROP_SIZE, CROP_SIZE, Bitmap.Config.ARGB_8888)
 
+                    // This matrix transforms coordinates from the full preview frame to the cropped bitmap
                     frameToCropTransform = ImageUtils.getTransformationMatrix(
                         previewWidth, previewHeight,
                         CROP_SIZE, CROP_SIZE,
-                        sensorOrientation, true
+                        sensorOrientation, /*maintainAspectRatio=*/ true
                     )
+                    // This matrix transforms coordinates from the cropped bitmap back to the full preview frame
                     cropToFrameTransform = Matrix().also { frameToCropTransform.invert(it) }
 
                     trackingOverlay = overlay
                     trackingOverlay.addCallback { canvas -> tracker.draw(canvas) }
                     tracker.setFrameConfiguration(
-                        previewWidth, previewHeight, sensorOrientation
+                        previewWidth, previewHeight, sensorOrientation, isFrontCameraActive // Teruskan status kamera depan
                     )
 
                     if (!recognitionsObserverAttached) {
                         viewModel.mappedRecognitions.observe(this@MainActivity) { recognitions ->
                             Log.d("DBG", "processResults size=${recognitions.size}")
+                            // Recognitions now contain locations in the original frame's coordinates,
+                            // already mirrored if it's the front camera.
+                            // The tracker will apply the final frameToCanvasMatrix for drawing.
                             tracker.trackResults(recognitions, System.currentTimeMillis())
                             trackingOverlay.postInvalidate()
                         }
@@ -207,7 +213,7 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
             },
             imageListener = this,
             layout = R.layout.camera_fragment,
-            inputSize = Size(640, 480)
+            inputSize = Size(640, 480) // This is the preferred preview size from the camera, not the model input size.
         ).apply { setCamera(cameraId) }
 
         supportFragmentManager.beginTransaction()
@@ -255,7 +261,7 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
         imageConverter.run()
         rgbFrameBitmap.setPixels(rgbBytes!!, 0, previewWidth, 0, 0, previewWidth, previewHeight)
 
-        // Crop ke ukuran model
+        // Crop ke ukuran model dan terapkan rotasi sensor
         Canvas(croppedBitmap).drawBitmap(rgbFrameBitmap, frameToCropTransform, null)
 
         // Proses via ViewModel (akan memanggil FaceDetectorWrapper.process)
@@ -263,6 +269,7 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
             croppedBitmap,
             previewWidth,
             previewHeight,
+            frameToCropTransform,
             cropToFrameTransform,
             isFrontCameraActive,
             sensorOrientation
