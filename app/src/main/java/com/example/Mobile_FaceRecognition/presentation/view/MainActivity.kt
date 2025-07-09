@@ -166,7 +166,7 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
                 ) {
                     previewHeight = size.height
                     previewWidth = size.width
-                    sensorOrientation = (rotation + 270) % 360 // Adjust for sensor orientation
+                    sensorOrientation = (rotation + 270) % 360 
                     isFrontCameraActive = isFrontFacing
 
                     val textSizePx = TypedValue.applyDimension(
@@ -179,31 +179,26 @@ class MainActivity : AppCompatActivity(), ImageReader.OnImageAvailableListener {
                     rgbFrameBitmap = Bitmap.createBitmap(
                         previewWidth, previewHeight, Bitmap.Config.ARGB_8888
                     )
-                    // The croppedBitmap will be the input for the TFLite model and ML Kit FaceDetector
-                    // Its size should match the input size of your TFLite model (e.g., 160x160 for FaceNet)
                     croppedBitmap = Bitmap.createBitmap(CROP_SIZE, CROP_SIZE, Bitmap.Config.ARGB_8888)
-
-                    // This matrix transforms coordinates from the full preview frame to the cropped bitmap
                     frameToCropTransform = ImageUtils.getTransformationMatrix(
                         previewWidth, previewHeight,
                         CROP_SIZE, CROP_SIZE,
                         sensorOrientation, /*maintainAspectRatio=*/ true
                     )
-                    // This matrix transforms coordinates from the cropped bitmap back to the full preview frame
                     cropToFrameTransform = Matrix().also { frameToCropTransform.invert(it) }
 
                     trackingOverlay = overlay
                     trackingOverlay.addCallback { canvas -> tracker.draw(canvas) }
                     tracker.setFrameConfiguration(
-                        previewWidth, previewHeight, sensorOrientation, isFrontCameraActive // Teruskan status kamera depan
+                        previewWidth, previewHeight, sensorOrientation, isFrontCameraActive
                     )
+
+                    Log.d("DBG", "preview Width = $previewWidth")
+                    Log.d("DBG", "preview Height = $previewHeight")
 
                     if (!recognitionsObserverAttached) {
                         viewModel.mappedRecognitions.observe(this@MainActivity) { recognitions ->
                             Log.d("DBG", "processResults size=${recognitions.size}")
-                            // Recognitions now contain locations in the original frame's coordinates,
-                            // already mirrored if it's the front camera.
-                            // The tracker will apply the final frameToCanvasMatrix for drawing.
                             tracker.trackResults(recognitions, System.currentTimeMillis())
                             trackingOverlay.postInvalidate()
                         }

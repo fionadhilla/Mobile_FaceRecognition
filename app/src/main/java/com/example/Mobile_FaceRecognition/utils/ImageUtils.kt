@@ -177,20 +177,6 @@ object ImageUtils {
         return matrix
     }
 
-    /**
-     * Mengembalikan matriks transformasi yang akan memetakan koordinat dari frame kamera asli
-     * (ukuran previewWidth x previewHeight) ke koordinat piksel pada OverlayView (ukuran canvas.width x canvas.height).
-     * Ini memperhitungkan rotasi sensor, penskalaan untuk mengisi TextureView sambil mempertahankan
-     * aspek rasio (FIT), dan pencerminan untuk kamera depan.
-     *
-     * @param frameWidth Lebar frame pratinjau kamera (previewWidth).
-     * @param frameHeight Tinggi frame pratinjau kamera (previewHeight).
-     * @param canvasWidth Lebar kanvas OverlayView (textureView.width).
-     * @param canvasHeight Tinggi kanvas OverlayView (textureView.height).
-     * @param sensorOrientation Orientasi sensor kamera.
-     * @param isFrontCamera True jika kamera depan sedang digunakan.
-     * @return Matriks yang dapat digunakan untuk mentransformasi RectF.
-     */
     fun getFrameToCanvasMatrix(
         frameWidth: Int,
         frameHeight: Int,
@@ -201,24 +187,27 @@ object ImageUtils {
     ): Matrix {
         val matrix = Matrix()
 
-        val scaleX = canvasWidth.toFloat() / frameWidth
-        val scaleY = canvasHeight.toFloat() / frameHeight
-        val scale = kotlin.math.min(scaleX, scaleY)
+        val srcWidth = frameWidth.toFloat()
+        val srcHeight = frameHeight.toFloat()
+        val dstWidth = canvasWidth.toFloat()
+        val dstHeight = canvasHeight.toFloat()
 
-        val scaledFrameWidth = frameWidth * scale
-        val scaledFrameHeight = frameHeight * scale
-        val translateX = (canvasWidth - scaledFrameWidth) / 2.0f
-        val translateY = (canvasHeight - scaledFrameHeight) / 2.0f
+        val scaleX = dstWidth / srcWidth
+        val scaleY = dstHeight / srcHeight
+        val scale = kotlin.math.max(scaleX, scaleY)
 
         matrix.postScale(scale, scale)
-        matrix.postTranslate(translateX, translateY)
+        val postScaleWidth = srcWidth * scale
+        val postScaleHeight = srcHeight * scale
 
-        if (isFrontCamera) {
-            matrix.postScale(-1f, 1f, canvasWidth / 2f, canvasHeight / 2f)
-        }
+        val dx = (dstWidth - postScaleWidth) / 2f
+        val dy = (dstHeight - postScaleHeight) / 2f
+
+        matrix.postTranslate(dx, dy)
 
         return matrix
     }
+
 
     fun fillBytes(planes: Array<Image.Plane>, yuvBytes: Array<ByteArray?>) {
         for (i in planes.indices) {

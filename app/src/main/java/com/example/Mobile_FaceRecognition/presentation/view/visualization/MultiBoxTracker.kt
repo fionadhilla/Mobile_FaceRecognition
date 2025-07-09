@@ -49,14 +49,13 @@ class MultiBoxTracker(context: Context) {
 
     @Synchronized
     fun setFrameConfiguration(width: Int, height: Int, sensorOrientation: Int, isFrontCamera: Boolean) {
-        frameWidth = width
-        frameHeight = height
+        this.frameWidth = width
+        this.frameHeight = height
         this.sensorOrientation = sensorOrientation
-        this.isFrontCamera = isFrontCamera // Set status kamera depan
+        this.isFrontCamera = isFrontCamera
         isConfigured = true
     }
 
-    /** hapus semua tracking (dipanggil saat switch kamera) */
     @Synchronized
     fun clear() {
         screenRects.clear()
@@ -76,92 +75,148 @@ class MultiBoxTracker(context: Context) {
     @Synchronized
     fun draw(canvas: Canvas) {
         if (!isConfigured) {
-            Log.w(TAG, "Tracker not configured yet, skip draw.")
-            return
+            Log.w(TAG, "Tracker not configured yet, skip drawDebug.") //
+            return //
         }
-        // Gunakan fungsi getFrameToCanvasMatrix baru dari ImageUtils
-        frameToCanvasMatrix = ImageUtils.getFrameToCanvasMatrix(
-            frameWidth,
-            frameHeight,
-            canvas.width,
-            canvas.height,
-            sensorOrientation,
-            isFrontCamera // Teruskan status kamera depan
-        )
-        val matrix = frameToCanvasMatrix ?: return
+        val srcWidth = frameWidth.toFloat() //
+        val srcHeight = frameHeight.toFloat() //
+        val dstWidth = canvas.width.toFloat() //
+        val dstHeight = canvas.height.toFloat() //
 
-        for (rec in trackedObjects) {
-            val trackedPos = RectF(rec.location)
-            matrix.mapRect(trackedPos) // Mengaplikasikan transformasi ke bounding box
+        val scaleX = dstWidth / srcWidth //
+        val scaleY = dstHeight / srcHeight //
 
-            // Logika untuk memastikan bounding box tetap dalam batas kanvas
-            trackedPos.left = trackedPos.left.coerceAtLeast(0f)
-            trackedPos.top = trackedPos.top.coerceAtLeast(0f)
-            trackedPos.right = trackedPos.right.coerceAtMost(canvas.width.toFloat())
-            trackedPos.bottom = trackedPos.bottom.coerceAtMost(canvas.height.toFloat())
+        val scaleFactor = min(scaleX, scaleY) //
 
+        val scaledSrcWidth = srcWidth * scaleFactor //
+        val scaledSrcHeight = srcHeight * scaleFactor //
 
-            Log.d("DBG_POS", "rect=$trackedPos  canvas=${canvas.width}x${canvas.height}")
+        val offsetX = (dstWidth - scaledSrcWidth) / 2f //
+        val offsetY = (dstHeight - scaledSrcHeight) / 2f //
 
-            boxPaint.color = rec.color
-            val corner = min(trackedPos.width(), trackedPos.height()) / 8f
-            canvas.drawRoundRect(trackedPos, corner, corner, boxPaint)
+        for (rec in trackedObjects) { //
 
-            val label = if (!TextUtils.isEmpty(rec.title)) {
-                String.format("%s %.2f", rec.title, rec.detectionConfidence)
+            var rawLeft = rec.location?.left ?: 0f //
+            var rawTop = rec.location?.top ?: 0f //
+            var rawRight = rec.location?.right ?: 0f //
+            var rawBottom = rec.location?.bottom ?: 0f //
+
+            val rotatedLeft: Float
+            val rotatedTop: Float
+            val rotatedRight: Float
+            val rotatedBottom: Float
+
+            when (sensorOrientation) { //
+                90 -> { // Rotate 90 degrees clockwise (portrait from landscape sensor)
+                    rotatedLeft = rawTop //
+                    rotatedTop = frameWidth - rawRight //
+                    rotatedRight = rawBottom //
+                    rotatedBottom = frameWidth - rawLeft //
+                }
+                180 -> { // Rotate 180 degrees
+                    rotatedLeft = frameWidth - rawRight //
+                    rotatedTop = frameHeight - rawBottom //
+                    rotatedRight = frameWidth - rawLeft //
+                    rotatedBottom = frameHeight - rawTop //
+                }
+                270 -> { // Rotate 270 degrees clockwise (or -90)
+                    rotatedLeft = frameHeight - rawBottom //
+                    rotatedTop = rawLeft //
+                    rotatedRight = frameHeight - rawTop //
+                    rotatedBottom = rawRight //
+                }
+                else -> { // 0 or 360 degrees, no rotation
+                    rotatedLeft = rawLeft //
+                    rotatedTop = rawTop //
+                    rotatedRight = rawRight //
+                    rotatedBottom = rawBottom //
+                }
+            }
+
+            val mirroredLeft: Float
+            val mirroredRight: Float
+
+            if (isFrontCamera) { //
+                val effectiveFrameWidthAfterRotation = if (sensorOrientation == 90 || sensorOrientation == 270) frameHeight.toFloat() else frameWidth.toFloat() //
+                mirroredLeft = effectiveFrameWidthAfterRotation - rotatedRight //
+                mirroredRight = effectiveFrameWidthAfterRotation - rotatedLeft //
             } else {
-                String.format("%.2f", rec.detectionConfidence)
+                mirroredLeft = rotatedLeft //
+                mirroredRight = rotatedRight //
             }
-            borderedText.drawText(
-                canvas, trackedPos.left + corner, trackedPos.top, label, boxPaint
-            )
-        }
-        Log.d("DBG_TR","draw size=${trackedObjects.size}")
+
+            var l = mirroredLeft * scaleFactor + offsetX //
+            var t = rotatedTop * scaleFactor + offsetY //
+            var r = mirroredRight * scaleFactor + offsetX //
+            var b = rotatedBottom * scaleFactor + offsetY //
+
+            l = l.coerceAtLeast(0f) //
+            t = t.coerceAtLeast(0f) //
+            r = r.coerceAtMost(canvas.width.toFloat()) //
+            b = b.coerceAtMost(canvas.height.toFloat()) //
+
+            val trackedPos = RectF(l, t, r, b) //
+
+            Log.d("DBG_POS", "rect=$trackedPos  canvas=${canvas.width}x${canvas.height}") //
+
+            boxPaint.color = rec.color //
+            val corner = min(trackedPos.width(), trackedPos.height()) / 8f //
+            canvas.drawRoundRect(trackedPos, corner, corner, boxPaint) //
+
+            val label = if (!TextUtils.isEmpty(rec.title)) { //
+                String.format("%s %.2f", rec.title, rec.detectionConfidence) //
+            } else { //
+                String.format("%.2f", rec.detectionConfidence) //
+            } //
+            borderedText.drawText( //
+                canvas, trackedPos.left + corner, trackedPos.top, label, boxPaint //
+            ) //
+        } //
+        Log.d("DBG_TR","draw size=${trackedObjects.size}") //
     }
 
-    private fun processResults(results: List<FaceRecognition>) {
-        Log.d("DBG", "processResults size=${results.size}")
-        val rectsToTrack = LinkedList<Pair<Float, FaceRecognition>>()
+    private fun processResults(results: List<FaceRecognition>) { //
+        Log.d("DBG", "processResults size=${results.size}") //
+        val rectsToTrack = LinkedList<Pair<Float, FaceRecognition>>() //
 
-        screenRects.clear()
+        screenRects.clear() //
 
-        for (result in results) {
-            val loc = result.location ?: continue
-            rectsToTrack.add(Pair(result.distance ?: 0f, result))
-        }
+        for (result in results) { //
+            val loc = result.location ?: continue //
+            rectsToTrack.add(Pair(result.distance ?: 0f, result)) //
+        } //
 
-        trackedObjects.clear()
-        if (rectsToTrack.isEmpty()) return
+        trackedObjects.clear() //
+        if (rectsToTrack.isEmpty()) return //
 
-        for (cand in rectsToTrack) {
-            val tr = TrackedRecognition().apply {
-                detectionConfidence = cand.first
-                // Lokasi sudah dalam koordinat frame asli dan sudah dicerminkan jika kamera depan
-                location = RectF(cand.second.location)
-                title = cand.second.title
-                color = COLORS[trackedObjects.size % COLORS.size]
-            }
-            trackedObjects.add(tr)
-            if (trackedObjects.size >= COLORS.size) break
-        }
+        for (cand in rectsToTrack) { //
+            val tr = TrackedRecognition().apply { //
+                detectionConfidence = cand.first //
+                location = RectF(cand.second.location) //
+                title = cand.second.title //
+                color = COLORS[trackedObjects.size % COLORS.size] //
+            } //
+            trackedObjects.add(tr) //
+            if (trackedObjects.size >= COLORS.size) break //
+        } //
     }
 
-    private class TrackedRecognition {
-        var location: RectF = RectF()
-        var detectionConfidence = 0f
-        var color = 0
-        var title: String? = null
+    private class TrackedRecognition { //
+        var location: RectF = RectF() //
+        var detectionConfidence = 0f //
+        var color = 0 //
+        var title: String? = null //
     }
 
-    companion object {
-        private const val TAG = "MultiBoxTracker"
-        private const val TEXT_SIZE_DIP = 18f
-        private const val MIN_SIZE = 16f
-        private val COLORS = intArrayOf(
-            Color.BLUE, Color.RED, Color.GREEN, Color.YELLOW, Color.CYAN, Color.MAGENTA,
-            Color.WHITE, Color.parseColor("#55FF55"), Color.parseColor("#FFA500"),
-            Color.parseColor("#FF8888"), Color.parseColor("#AAAAFF"), Color.parseColor("#FFFFAA"),
-            Color.parseColor("#55AAAA"), Color.parseColor("#AA33AA"), Color.parseColor("#0D0068")
-        )
+    companion object { //
+        private const val TAG = "MultiBoxTracker" //
+        private const val TEXT_SIZE_DIP = 18f //
+        private const val MIN_SIZE = 16f //
+        private val COLORS = intArrayOf( //
+            Color.BLUE, Color.RED, Color.GREEN, Color.YELLOW, Color.CYAN, Color.MAGENTA, //
+            Color.WHITE, Color.parseColor("#55FF55"), Color.parseColor("#FFA500"), //
+            Color.parseColor("#FF8888"), Color.parseColor("#AAAAFF"), Color.parseColor("#FFFFAA"), //
+            Color.parseColor("#55AAAA"), Color.parseColor("#AA33AA"), Color.parseColor("#0D0068") //
+        ) //
     }
 }

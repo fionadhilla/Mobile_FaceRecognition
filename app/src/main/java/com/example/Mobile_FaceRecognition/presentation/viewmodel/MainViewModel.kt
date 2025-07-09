@@ -99,8 +99,7 @@ class MainViewModel(
                             clearJob?.cancel()
                             clearJob = launch {
                                 delay(500)
-                                // Only clear if there are existing recognitions.
-                                if (_mappedRecognitions.value?.isNotEmpty() == true) { // Changed to check if not empty
+                                if (_mappedRecognitions.value?.isNotEmpty() == true) {
                                     _mappedRecognitions.postValue(emptyList())
                                     Log.d("DBG", "Clear recognitions executed after delay")
                                 }
@@ -112,7 +111,7 @@ class MainViewModel(
 
                         val newRecognitions = mutableListOf<FaceRecognition>()
                         for (face in faces) {
-                            val boundsInCroppedBitmap = face.boundingBox // Bounds are relative to croppedBitmap
+                            val boundsInCroppedBitmap = face.boundingBox
                             val croppedFace = cropFaceBitmap(croppedBitmap, boundsInCroppedBitmap) ?: continue
 
                             val result = recognizeFaceUseCase(croppedFace, isRegisteringFace) ?: continue
@@ -126,35 +125,27 @@ class MainViewModel(
                             val locationInOriginalFrame = RectF(boundsInCroppedBitmap)
                             cropToFrameTransform.mapRect(locationInOriginalFrame)
 
-                            if (isFrontCamera) {
-                                val tmp = locationInOriginalFrame.left
-                                locationInOriginalFrame.left = previewWidth - locationInOriginalFrame.right
-                                locationInOriginalFrame.right = previewWidth - tmp
-                            }
+                            Log.d("DBG_VM_RAW", "Location in raw frame (before display transform): $locationInOriginalFrame")
 
-
-                            // Calculate label & confidence
                             var title = "Unknown"
                             var confidence = 0f
-                            // The threshold 0.75f is arbitrary, adjust based on model performance
-                            if (result.distance != null && result.distance < 0.75f) { // Lower distance means better match
+                            if (result.distance != null && result.distance < 0.75f) {
                                 title = result.title
-                                confidence = result.distance // Use distance as confidence for now, inverse might be better
+                                confidence = result.distance
                             }
 
                             newRecognitions.add(
                                 FaceRecognition(
                                     id        = face.trackingId?.toString() ?: "N/A",
                                     title     = title,
-                                    distance  = confidence, // This is the distance from the recognition model
-                                    location  = locationInOriginalFrame, // Location now in original frame coordinates
+                                    distance  = confidence,
+                                    location  = locationInOriginalFrame,
                                     embedding = result.embedding,
                                     crop      = result.crop
                                 )
                             )
                         }
 
-                        // Post to LiveData (can be empty if no valid faces)
                         _mappedRecognitions.postValue(newRecognitions)
                         Log.d("DBG", "Faces=${faces.size}, recognitions=${newRecognitions.size}")
                     }
@@ -167,6 +158,7 @@ class MainViewModel(
                 }
         }
     }
+
 
     fun registerFace(name: String, embedding: FloatArray) {
         viewModelScope.launch {
