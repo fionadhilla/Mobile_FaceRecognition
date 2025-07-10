@@ -29,7 +29,7 @@ import com.example.myapplication4.ui.components.BottomNavBar
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel = viewModel(),
-    onNavigateToLog: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     onNavigateToAddFace: () -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
@@ -88,7 +88,7 @@ fun CameraScreen(
         }
         // Bottom Navigation Bar
         BottomNavBar(
-            onLogClick = onNavigateToLog,
+            onHistoryClick = onNavigateToHistory,
             onAddClick = onNavigateToAddFace,
             onProfileClick = onNavigateToProfile
         )

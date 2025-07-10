@@ -1,25 +1,53 @@
 package com.example.myapplication4.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.*
+import androidx.navigation.*
+import androidx.navigation.compose.*
 import com.example.myapplication4.ui.camera.CameraScreen
+import com.example.myapplication4.ui.login.LoginScreen
+import com.example.myapplication4.ui.notifikasi.HistoryScreen
+import com.example.myapplication4.ui.profile.ProfileScreen
+import com.example.myapplication4.ui.login.LoginStateViewModel
+import com.example.myapplication4.ui.edit_profile.EditProfileScreen
 
 @Composable
-fun AppNavGraph(navController: NavHostController) {
-    val navController = rememberNavController()
-    NavHost(navController, startDestination = "camera") {
+fun AppNavGraph(
+    navController: NavHostController,
+    loginStateViewModel: LoginStateViewModel,
+    startDestination: String
+) {
+    NavHost(navController = navController, startDestination = startDestination) {
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    loginStateViewModel.login()
+                    navController.navigate("camera") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+        }
         composable("camera") {
             CameraScreen(
-                onNavigateToLog = { navController.navigate("history") },
+                onNavigateToHistory = { navController.navigate("history") },
                 onNavigateToAddFace = { navController.navigate("addFace") },
                 onNavigateToProfile = { navController.navigate("profile") }
             )
         }
-//        composable("history") { NotificationScreen() }
-//        composable("addFace") { AddFaceScreen() }
-//        composable("profile") { ProfileScreen() }
+        composable("history") {
+            HistoryScreen(navController = navController)
+        }
+        composable("profile") {
+            ProfileScreen(
+                navController = navController,
+                loginStateViewModel = loginStateViewModel,
+                onNavigateToEditProfile = {
+                    navController.navigate("editProfile")
+                }
+            )
+        }
+        composable("editProfile") {
+            EditProfileScreen(navController = navController)
+        }
     }
 }

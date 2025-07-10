@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun BottomNavBar(
-    onLogClick: () -> Unit,
+    onHistoryClick: () -> Unit,
     onAddClick: () -> Unit,
     onProfileClick: () -> Unit
 ) {
@@ -47,7 +47,7 @@ fun BottomNavBar(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 IconButton(
-                    onClick = onLogClick,
+                    onClick = onHistoryClick,
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
                 ) {

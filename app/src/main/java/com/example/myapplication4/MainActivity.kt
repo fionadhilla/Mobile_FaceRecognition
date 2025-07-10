@@ -5,8 +5,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication4.navigation.AppNavGraph
+import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -27,7 +29,12 @@ class MainActivity : ComponentActivity() {
 
             if (cameraPermissionState.status.isGranted) {
                 val navController = rememberNavController()
-                AppNavGraph(navController = navController)
+                val loginStateViewModel: LoginStateViewModel = viewModel()
+                val isLoggedIn by loginStateViewModel.isLoggedIn.collectAsState()
+                AppNavGraph(
+                    navController,
+                    loginStateViewModel,
+                    startDestination = if (isLoggedIn) "camera" else "login")
             }
         }
     }
