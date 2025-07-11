@@ -47,9 +47,18 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
+
+    packaging {
+        resources {
+            aaptOptions {
+                noCompress ("tflite")
+            }
+        }
+    }
 }
 
 dependencies {
+    implementation(libs.play.services.mlkit.face.detection)
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"
     val camerax_version = "1.1.0-beta01"
@@ -106,4 +115,7 @@ dependencies {
     // COROUTINE
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // MediaPipe Tasks-vision (Face detection)
+    implementation (libs.tasks.vision)
 }
