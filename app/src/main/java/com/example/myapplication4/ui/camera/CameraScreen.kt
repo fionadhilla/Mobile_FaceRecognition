@@ -152,8 +152,8 @@ fun CameraScreen(
                         modifier = Modifier
                             .fillMaxSize(),
                         detectionResult = result,
-                        imageWidth = 480,
-                        imageHeight = 640
+                        imageWidth = imageWidth,
+                        imageHeight = imageHeight
                     )
                 }
 

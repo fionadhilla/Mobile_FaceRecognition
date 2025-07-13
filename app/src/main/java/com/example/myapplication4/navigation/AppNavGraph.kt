@@ -3,6 +3,7 @@ package com.example.myapplication4.navigation
 import androidx.compose.runtime.*
 import androidx.navigation.*
 import androidx.navigation.compose.*
+import com.example.myapplication4.ui.addface.AddFaceScreen
 import com.example.myapplication4.ui.camera.CameraScreen
 import com.example.myapplication4.ui.login.LoginScreen
 import com.example.myapplication4.ui.notifikasi.HistoryScreen
@@ -48,6 +49,20 @@ fun AppNavGraph(
         }
         composable("editProfile") {
             EditProfileScreen(navController = navController)
+        }
+
+        composable("addFace") {
+            AddFaceScreen(
+                onBack = {
+                    navController.navigate("camera")
+                },
+                onRetakePhoto = {
+                    navController.navigate("camera")
+                },
+                onSave = { _,_ ->
+                    navController.navigate("camera")
+                }
+            )
         }
     }
 }

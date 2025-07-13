@@ -23,19 +23,23 @@ fun FaceOverlay(
         val scaleX = canvasWidth / imageWidth
         val scaleY = canvasHeight / imageHeight
 
+        val expansionFactor = 1f
+
         detectionResult.detections().forEach { detection ->
             val box = detection.boundingBox()
 
-            val left = box.left * scaleX
+            val expandedWidth = box.width() * expansionFactor
+
+            val left = (box.left - expandedWidth) * scaleX
             val top = box.top * scaleY
-            val width = box.width() * scaleX
+            val width = (box.width() + expandedWidth) * scaleX
             val height = box.height() * scaleY
 
             drawRect(
                 color = Color.Blue,
                 topLeft = Offset(left, top),
                 size = Size(width, height),
-                style = Stroke(width = 4f)
+                style = Stroke(width = 7f)
             )
         }
     }
