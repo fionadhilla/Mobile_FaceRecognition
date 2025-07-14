@@ -65,7 +65,8 @@
             android:layout_marginStart="32dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="32dp"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            android:id="@+id/cl_edit_profile">
 
 
             <ImageView
