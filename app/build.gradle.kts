@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
-    alias(libs.plugins.android.hilt)
+    alias(libs.plugins.hilt.android)
 }
 
 android {
@@ -92,6 +92,7 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation("com.squareup:javapoet:1.13.0")
 
     // JETPACK
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version")
