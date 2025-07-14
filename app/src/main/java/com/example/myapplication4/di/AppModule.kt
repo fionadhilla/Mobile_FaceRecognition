@@ -1,5 +1,7 @@
 package com.example.myapplication4.di
 
+import com.example.myapplication4.data.repository.HistoryRepository
+import com.example.myapplication4.data.repository.HistoryRepositoryImpl
 import com.example.myapplication4.data.repository.LoginRepository
 import com.example.myapplication4.data.repository.LoginRepositoryImpl
 import com.example.myapplication4.domain.usecase.LoginUseCase
@@ -24,4 +26,8 @@ object AppModule {
     fun provideLoginUseCase(loginRepository: LoginRepository): LoginUseCase {
         return LoginUseCase(loginRepository)
     }
+
+    @Provides
+    @Singleton
+    fun provideHistoryRepository(): HistoryRepository = HistoryRepositoryImpl()
 }

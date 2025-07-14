@@ -15,6 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.VisualTransformation
 
 @Composable
 fun LoginScreen(
@@ -28,6 +32,9 @@ fun LoginScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    var isPasswordVisible by remember { mutableStateOf(false) }
+    val icon = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
+    val description = if (isPasswordVisible) "Hide password" else "Show password"
 
     LaunchedEffect(loginError) {
         loginError?.let {
@@ -73,10 +80,15 @@ fun LoginScreen(
                 onValueChange = viewModel::onPasswordChange,
                 label = { Text("Password", color = textColor) },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = LocalTextStyle.current.copy(color = textColor)
+                textStyle = LocalTextStyle.current.copy(color = textColor),
+                trailingIcon = {
+                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                        Icon(imageVector = icon, contentDescription = description)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
