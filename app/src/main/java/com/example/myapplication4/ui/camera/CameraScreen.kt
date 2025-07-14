@@ -52,7 +52,7 @@ fun CameraScreen(
     viewModel: CameraViewModel = viewModel(),
     onNavigateToHistory: () -> Unit,
     onNavigateToAddFace: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -63,6 +63,7 @@ fun CameraScreen(
     var imageWidth by remember { mutableStateOf(1) }
     var imageHeight by remember { mutableStateOf(1) }
     val snackbarHostState = remember { SnackbarHostState() }
+    var isMoreMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(isFaceDetected) {
         if (isFaceDetected) {
@@ -126,9 +127,20 @@ fun CameraScreen(
             BottomNavBar(
                 onHistoryClick = onNavigateToHistory,
                 onAddClick = onNavigateToAddFace,
-                onProfileClick = onNavigateToProfile
+                onProfileClick = onNavigateToProfile,
+                isMoreMenuExpanded = isMoreMenuExpanded,
+                onToggleMoreMenu = { isMoreMenuExpanded = !isMoreMenuExpanded },
+                onMoreOptionSelected = { selected ->
+                    isMoreMenuExpanded = false
+                    when (selected) {
+                        "face" -> {}
+                        "object" -> {}
+                        "more" -> {}
+                    }
+                }
             )
-        }
+        },
+        modifier = Modifier.background(color = Color.LightGray)
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -161,7 +173,7 @@ fun CameraScreen(
                 IconButton(
                     onClick = { viewModel.switchCamera() },
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
+                        .align(Alignment.BottomStart)
                         .padding(16.dp)
                         .size(48.dp)
                         .background(MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.small)

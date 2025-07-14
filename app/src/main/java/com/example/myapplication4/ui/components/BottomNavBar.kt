@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,12 +24,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.unit.DpOffset
 
 @Composable
 fun BottomNavBar(
     onHistoryClick: () -> Unit,
     onAddClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    isMoreMenuExpanded: Boolean,
+    onToggleMoreMenu: () -> Unit,
+    onMoreOptionSelected: (String) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -86,6 +93,34 @@ fun BottomNavBar(
                     )
                 }
                 Text("Profile", fontSize = 12.sp, color = Color.Black)
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box {
+                    IconButton(onClick = onToggleMoreMenu) {
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = Color.Black)
+                    }
+                    DropdownMenu(
+                        expanded = isMoreMenuExpanded,
+                        onDismissRequest = onToggleMoreMenu,
+                        offset = DpOffset(x = (-95).dp, y = (-230).dp)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Face Recognition") },
+                            onClick = { onMoreOptionSelected("face") }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Object Detection") },
+                            onClick = { onMoreOptionSelected("object") }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("More...") },
+                            onClick = { onMoreOptionSelected("more") }
+                        )
+                    }
+                }
+
+                Text("More", fontSize = 12.sp)
             }
         }
     }
