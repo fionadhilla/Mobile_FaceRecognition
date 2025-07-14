@@ -5,8 +5,19 @@ import javax.inject.Inject
 
 class LoginRepositoryImpl @Inject constructor() : LoginRepository {
     private val dummyUsers = listOf(
-        Admin("admin", "admin123"),
-        Admin("user", "user123")
+        Admin(
+            adminID = 1,
+            username = "admin1",
+            password = "admin123",
+            email = "admin1@example.com"
+        ),
+        Admin(
+            adminID = 2,
+            username = "admin2",
+            password = "sayaadmin123",
+            email = "admin2@example.com"
+        ),
+
     )
 
     override fun validateUser(username: String, password: String): Boolean {

@@ -46,6 +46,7 @@ class LoginViewModel @Inject constructor(
             } else {
                 _loginError.value = "Username atau password salah"
             }
+
             _isLoggingIn.value = false
         }
     }
