@@ -35,9 +35,11 @@ fun AppNavGraph(
                 onNavigateToProfile = { navController.navigate("profile") }
             )
         }
+
         composable("history") {
             HistoryScreen(navController = navController)
         }
+
         composable("profile") {
             ProfileScreen(
                 navController = navController,

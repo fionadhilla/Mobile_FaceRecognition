@@ -25,11 +25,11 @@ import com.example.myapplication4.ui.profile.ProfileViewModel
 
 @Composable
 fun ProfileScreen(navController: NavController,
-                  viewModel: ProfileViewModel = viewModel(),
+                  viewModel: ProfileViewModel = hiltViewModel(),
                   loginStateViewModel: LoginStateViewModel,
                   onNavigateToEditProfile: () -> Unit = {})
 {
-    val userName by viewModel.userName.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
@@ -66,7 +66,7 @@ fun ProfileScreen(navController: NavController,
                     tint = Color.White
                 )
                 Text(
-                    text = userName,
+                    text = userProfile.fullName,
                     color = Color.White,
                     modifier = Modifier.padding(top = 8.dp, bottom = 50.dp),
                 )
@@ -122,24 +122,24 @@ fun ProfileMenuItem(text: String, onClick: () -> Unit) {
     }
 }
 
-@Preview(showBackground = true, widthDp = 360, heightDp = 640)
-@Composable
-fun ProfileScreenPreview() {
-    val navController = rememberNavController()
-
-    val profileViewModel = ProfileViewModel()
-    profileViewModel.setUserName("Jane Doe")
-
-    val loginStateViewModel = object : LoginStateViewModel() {
-        override fun logout() {
-            // Do nothing for preview
-        }
-    }
-
-    ProfileScreen(
-        navController = navController,
-        viewModel = profileViewModel,
-        loginStateViewModel = loginStateViewModel,
-        onNavigateToEditProfile = {}
-    )
-}
+//@Preview(showBackground = true, widthDp = 360, heightDp = 640)
+//@Composable
+//fun ProfileScreenPreview() {
+//    val navController = rememberNavController()
+//
+//    val profileViewModel = ProfileViewModel()
+//    profileViewModel.setUserName("Jane Doe")
+//
+//    val loginStateViewModel = object : LoginStateViewModel() {
+//        override fun logout() {
+//
+//        }
+//    }
+//
+//    ProfileScreen(
+//        navController = navController,
+//        viewModel = profileViewModel,
+//        loginStateViewModel = loginStateViewModel,
+//        onNavigateToEditProfile = {}
+//    )
+//}
