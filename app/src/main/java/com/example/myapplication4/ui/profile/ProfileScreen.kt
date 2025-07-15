@@ -14,9 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.ui.profile.ProfileViewModel
 
@@ -117,4 +120,26 @@ fun ProfileMenuItem(text: String, onClick: () -> Unit) {
         }
         Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
     }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 640)
+@Composable
+fun ProfileScreenPreview() {
+    val navController = rememberNavController()
+
+    val profileViewModel = ProfileViewModel()
+    profileViewModel.setUserName("Jane Doe")
+
+    val loginStateViewModel = object : LoginStateViewModel() {
+        override fun logout() {
+            // Do nothing for preview
+        }
+    }
+
+    ProfileScreen(
+        navController = navController,
+        viewModel = profileViewModel,
+        loginStateViewModel = loginStateViewModel,
+        onNavigateToEditProfile = {}
+    )
 }

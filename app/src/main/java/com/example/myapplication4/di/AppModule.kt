@@ -4,7 +4,11 @@ import com.example.myapplication4.data.repository.HistoryRepository
 import com.example.myapplication4.data.repository.HistoryRepositoryImpl
 import com.example.myapplication4.data.repository.LoginRepository
 import com.example.myapplication4.data.repository.LoginRepositoryImpl
+import com.example.myapplication4.data.repository.UserProfileRepository
+import com.example.myapplication4.data.repository.UserProfileRepositoryImpl
+import com.example.myapplication4.domain.usecase.GetUserProfileUseCase
 import com.example.myapplication4.domain.usecase.LoginUseCase
+import com.example.myapplication4.domain.usecase.UpdateUserProfileUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,4 +34,22 @@ object AppModule {
     @Provides
     @Singleton
     fun provideHistoryRepository(): HistoryRepository = HistoryRepositoryImpl()
+
+    @Provides
+    @Singleton
+    fun provideUserProfileRepository(): UserProfileRepository {
+        return UserProfileRepositoryImpl()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetUserProfileUseCase(repository: UserProfileRepository): GetUserProfileUseCase {
+        return GetUserProfileUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUpdateUserProfileUseCase(repository: UserProfileRepository): UpdateUserProfileUseCase {
+        return UpdateUserProfileUseCase(repository)
+    }
 }
