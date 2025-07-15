@@ -46,10 +46,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun CameraScreen(
-    viewModel: CameraViewModel = viewModel(),
+    viewModel: CameraViewModel = hiltViewModel(),
     onNavigateToHistory: () -> Unit,
     onNavigateToAddFace: () -> Unit,
     onNavigateToProfile: () -> Unit,
@@ -96,8 +97,8 @@ fun CameraScreen(
                 analysis.setAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
                     try {
                         val bitmap = imageProxy.toBitmap()
-                        imageWidth = bitmap.width
-                        imageHeight = bitmap.height
+                        imageWidth = imageProxy.width
+                        imageHeight = imageProxy.height
                         viewModel.processFrame(bitmap)
                     } catch (e: Exception) {
                         Log.e("Analyzer", "Error converting image", e)
@@ -161,11 +162,11 @@ fun CameraScreen(
                 // Overlay Bounding Boxes
                 detectionResult?.let { result ->
                     FaceOverlay(
-                        modifier = Modifier
-                            .fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
                         detectionResult = result,
                         imageWidth = imageWidth,
-                        imageHeight = imageHeight
+                        imageHeight = imageHeight,
+                        isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
                     )
                 }
 

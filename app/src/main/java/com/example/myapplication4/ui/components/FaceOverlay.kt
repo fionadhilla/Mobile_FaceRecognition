@@ -14,32 +14,42 @@ fun FaceOverlay(
     modifier: Modifier = Modifier,
     detectionResult: FaceDetectorResult,
     imageWidth: Int,
-    imageHeight: Int
+    imageHeight: Int,
+    isFrontCamera: Boolean
 ) {
     Canvas(modifier = modifier) {
+        if (size.width == 0f || size.height == 0f) return@Canvas
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        val scaleX = canvasWidth / imageWidth
-        val scaleY = canvasHeight / imageHeight
+        // Penting! Gunakan image dimensions yang sesuai orientasi canvas (portrait)
+        val scaleX = canvasWidth / imageWidth.toFloat()
+        val scaleY = canvasHeight / imageHeight.toFloat()
+        val scale = maxOf(scaleX, scaleY)
 
-        val expansionFactor = 1f
+        val offsetX = (canvasWidth - imageWidth * scale) / 2f - 5f
+        val offsetY = (canvasHeight - imageHeight * scale) / 2f
 
         detectionResult.detections().forEach { detection ->
             val box = detection.boundingBox()
 
-            val expandedWidth = box.width() * expansionFactor
+            var left = box.left * scale + offsetX
+            var top = box.top * scale + offsetY
+            var right = box.right * scale + offsetX
+            var bottom = box.bottom * scale + offsetY
 
-            val left = (box.left - expandedWidth) * scaleX
-            val top = box.top * scaleY
-            val width = (box.width() + expandedWidth) * scaleX
-            val height = box.height() * scaleY
+            if (isFrontCamera) {
+                val flippedLeft = canvasWidth - right
+                val flippedRight = canvasWidth - left
+                left = flippedLeft
+                right = flippedRight
+            }
 
             drawRect(
                 color = Color.Blue,
                 topLeft = Offset(left, top),
-                size = Size(width, height),
-                style = Stroke(width = 7f)
+                size = Size(right - left, bottom - top),
+                style = Stroke(width = 6f)
             )
         }
     }
