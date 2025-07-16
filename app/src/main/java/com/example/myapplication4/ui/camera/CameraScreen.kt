@@ -57,15 +57,21 @@ fun CameraScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
     val lensFacing by viewModel.lensFacing.collectAsState()
     val detectionResult by viewModel.detectionResult.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
-    val previewView = remember { PreviewView(context) }
+    val previewView = remember {
+        PreviewView(context).also {
+            it.scaleType = PreviewView.ScaleType.FIT_CENTER
+        }
+    }
     var imageWidth by remember { mutableStateOf(1) }
     var imageHeight by remember { mutableStateOf(1) }
     val snackbarHostState = remember { SnackbarHostState() }
     var isMoreMenuExpanded by remember { mutableStateOf(false) }
 
+    // Show snackbar when face is detected
     LaunchedEffect(isFaceDetected) {
         if (isFaceDetected) {
             snackbarHostState.showSnackbar(
@@ -75,7 +81,7 @@ fun CameraScreen(
         }
     }
 
-// Bind camera
+    // Camera binding
     LaunchedEffect(lensFacing) {
         val cameraProvider = withContext(Dispatchers.Main) {
             ProcessCameraProvider.getInstance(context).get()
@@ -121,7 +127,6 @@ fun CameraScreen(
         }
     }
 
-// UI Layout
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
@@ -153,13 +158,11 @@ fun CameraScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                // Camera Preview
                 AndroidView(
                     factory = { previewView },
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Overlay Bounding Boxes
                 detectionResult?.let { result ->
                     FaceOverlay(
                         modifier = Modifier.fillMaxSize(),
@@ -170,14 +173,13 @@ fun CameraScreen(
                     )
                 }
 
-                // Switch Camera Button
                 IconButton(
                     onClick = { viewModel.switchCamera() },
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
                         .size(48.dp)
-                        .background(MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Cameraswitch,

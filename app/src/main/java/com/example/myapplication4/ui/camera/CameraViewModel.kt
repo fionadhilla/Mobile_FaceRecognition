@@ -34,52 +34,46 @@ class CameraViewModel @Inject constructor(
     private var faceDetector: MediaPipeFaceDetector? = null
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                faceDetector = MediaPipeFaceDetector(getApplication())
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Failed to initialize FaceDetector: ${e.message}")
+        initFaceDetector()
+    }
+
+    private fun initFaceDetector() {
+        faceDetector = MediaPipeFaceDetector(
+            context = getApplication(),
+            onResult = { result ->
+                _detectionResult.value = result
+                handleDetection(result)
+            },
+            onError = { error ->
+                Log.e("CameraViewModel", "Face detection error: ${error.message}")
             }
+        )
+    }
+
+    private fun handleDetection(result: FaceDetectorResult) {
+        val detected = result.detections().isNotEmpty()
+
+        if (detected && !_isFaceDetected.value) {
+            _isFaceDetected.value = true
+            viewModelScope.launch {
+                delay(1500)
+                _isFaceDetected.value = false
+            }
+        } else if (!detected && _isFaceDetected.value) {
+            _isFaceDetected.value = false
         }
     }
 
     fun switchCamera() {
-        _lensFacing.value =
-            if (_lensFacing.value == CameraSelector.LENS_FACING_BACK) {
-                CameraSelector.LENS_FACING_FRONT
-            } else {
-                CameraSelector.LENS_FACING_BACK
-            }
+        _lensFacing.value = if (_lensFacing.value == CameraSelector.LENS_FACING_BACK) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
     }
 
     fun processFrame(bitmap: Bitmap) {
-        viewModelScope.launch(Dispatchers.Default) {
-            if (faceDetector == null) {
-                Log.e("CameraViewModel", "FaceDetector not initialized.")
-                return@launch
-            }
-            try {
-                val result = faceDetector?.detect(bitmap)
-                _detectionResult.value = result
-
-                val detected = result?.detections()?.isNotEmpty() == true
-                if (detected && !_isFaceDetected.value) {
-                    _isFaceDetected.value = true
-                    viewModelScope.launch {
-                        delay(1500)
-                        _isFaceDetected.value = false
-                    }
-                } else if (!detected && _isFaceDetected.value) {
-                    _isFaceDetected.value = false
-                }
-
-
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error processing frame: ${e.message}")
-                _detectionResult.value = null
-                _isFaceDetected.value = false
-            }
-        }
+        faceDetector?.detect(bitmap)
     }
 
     override fun onCleared() {

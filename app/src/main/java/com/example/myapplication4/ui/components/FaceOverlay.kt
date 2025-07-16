@@ -8,6 +8,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
+import android.util.Log
+import com.example.myapplication4.ui.camera.CameraPreviewTransformer
 
 @Composable
 fun FaceOverlay(
@@ -18,39 +20,34 @@ fun FaceOverlay(
     isFrontCamera: Boolean
 ) {
     Canvas(modifier = modifier) {
-        if (size.width == 0f || size.height == 0f) return@Canvas
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        // Penting! Gunakan image dimensions yang sesuai orientasi canvas (portrait)
-        val scaleX = canvasWidth / imageWidth.toFloat()
-        val scaleY = canvasHeight / imageHeight.toFloat()
-        val scale = maxOf(scaleX, scaleY)
-
-        val offsetX = (canvasWidth - imageWidth * scale) / 2f - 5f
-        val offsetY = (canvasHeight - imageHeight * scale) / 2f
-
-        detectionResult.detections().forEach { detection ->
+        detectionResult.detections().forEachIndexed { index, detection ->
             val box = detection.boundingBox()
 
-            var left = box.left * scale + offsetX
-            var top = box.top * scale + offsetY
-            var right = box.right * scale + offsetX
-            var bottom = box.bottom * scale + offsetY
-
-            if (isFrontCamera) {
-                val flippedLeft = canvasWidth - right
-                val flippedRight = canvasWidth - left
-                left = flippedLeft
-                right = flippedRight
-            }
+            val mappedBox = CameraPreviewTransformer.mapBoundingBoxToView(
+                boundingBox = box,
+                imageWidth = imageWidth,
+                imageHeight = imageHeight,
+                viewWidth = canvasWidth,
+                viewHeight = canvasHeight,
+                isFrontCamera = isFrontCamera,
+                expansionFactor = 0.7f
+            )
 
             drawRect(
                 color = Color.Blue,
-                topLeft = Offset(left, top),
-                size = Size(right - left, bottom - top),
+                topLeft = Offset(mappedBox.left.toFloat(), mappedBox.top.toFloat()),
+                size = Size(
+                    width = (mappedBox.right - mappedBox.left).toFloat(),
+                    height = (mappedBox.bottom - mappedBox.top).toFloat()
+                ),
                 style = Stroke(width = 6f)
             )
+
+            Log.d("FaceOverlay", "Face #$index mapped to $mappedBox (orig=${box})")
         }
+
     }
 }
