@@ -16,7 +16,7 @@ class ProfileViewModel @Inject constructor(
     private val getUserProfileUseCase: GetUserProfileUseCase
 ) : ViewModel() {
 
-    private val _userProfile = MutableStateFlow(User("", "", "")) // Nilai awal kosong
+    private val _userProfile = MutableStateFlow(User("Nama Placeholder", "", "")) // Nilai awal kosong
     val userProfile: StateFlow<User> = _userProfile.asStateFlow()
 
     val userName: StateFlow<String> = userProfile.value.fullName.let { MutableStateFlow(it) }.asStateFlow()

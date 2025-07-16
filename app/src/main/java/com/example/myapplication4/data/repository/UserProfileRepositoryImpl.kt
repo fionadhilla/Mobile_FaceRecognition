@@ -11,13 +11,12 @@ import javax.inject.Singleton
 class UserProfileRepositoryImpl @Inject constructor() : UserProfileRepository {
 
     private var currentUserProfile = User(
-        fullName = "Fiona Dhilla",
+        fullName = "Fionadhilla Gustriani",
         email = "fiona.dhilla@gmail.com",
         phoneNumber = "081234567890"
     )
 
     override fun getUserProfile(): Flow<User> = flow {
-        delay(500)
         emit(currentUserProfile)
     }
 
