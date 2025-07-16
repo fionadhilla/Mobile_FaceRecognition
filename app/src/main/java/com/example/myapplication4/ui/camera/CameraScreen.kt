@@ -37,22 +37,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
-import com.example.myapplication4.ui.camera.CameraViewModel
 import com.example.myapplication4.ui.components.BottomNavBar
 import com.example.myapplication4.ui.components.FaceOverlay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
+import android.net.Uri
 
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel = hiltViewModel(),
     onNavigateToHistory: () -> Unit,
-    onNavigateToAddFace: () -> Unit,
+    onNavigateToAddFace: (Uri?) -> Unit,
     onNavigateToProfile: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -70,6 +71,27 @@ fun CameraScreen(
     var imageHeight by remember { mutableStateOf(1) }
     val snackbarHostState = remember { SnackbarHostState() }
     var isMoreMenuExpanded by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    val croppedFaceImageUri by viewModel.croppedFaceImageUri.collectAsState()
+    var isCroppingInProgress by remember { mutableStateOf(false) }
+
+    LaunchedEffect(croppedFaceImageUri) {
+        if (isCroppingInProgress) {
+            if (croppedFaceImageUri != null) {
+                onNavigateToAddFace(croppedFaceImageUri)
+            } else {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Gagal memotong wajah. Pastikan wajah terlihat jelas.",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+                onNavigateToAddFace(null)
+            }
+            isCroppingInProgress = false
+        }
+    }
 
     // Show snackbar when face is detected
     LaunchedEffect(isFaceDetected) {
@@ -105,7 +127,8 @@ fun CameraScreen(
                         val bitmap = imageProxy.toBitmap()
                         imageWidth = imageProxy.width
                         imageHeight = imageProxy.height
-                        viewModel.processFrame(bitmap)
+                        val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+                        viewModel.processFrame(bitmap, rotationDegrees)
                     } catch (e: Exception) {
                         Log.e("Analyzer", "Error converting image", e)
                     } finally {
@@ -132,7 +155,22 @@ fun CameraScreen(
         bottomBar = {
             BottomNavBar(
                 onHistoryClick = onNavigateToHistory,
-                onAddClick = onNavigateToAddFace,
+                onAddClick = {
+                    if (!isCroppingInProgress) {
+                        if (isFaceDetected) {
+                            isCroppingInProgress = true
+                            viewModel.cropDetectedFace()
+                        } else {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "Tidak ada wajah terdeteksi untuk ditambahkan.",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                            onNavigateToAddFace(null)
+                        }
+                    }
+                },
                 onProfileClick = onNavigateToProfile,
                 isMoreMenuExpanded = isMoreMenuExpanded,
                 onToggleMoreMenu = { isMoreMenuExpanded = !isMoreMenuExpanded },

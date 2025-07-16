@@ -10,6 +10,13 @@ import com.example.myapplication4.ui.notifikasi.HistoryScreen
 import com.example.myapplication4.ui.profile.ProfileScreen
 import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.ui.edit_profile.EditProfileScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.currentBackStackEntryAsState
+
+import android.net.Uri
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AppNavGraph(
@@ -17,6 +24,12 @@ fun AppNavGraph(
     loginStateViewModel: LoginStateViewModel,
     startDestination: String
 ) {
+    // Dapatkan ViewModelStoreOwner dari Activity saat ini.
+    // Ini menjamin instance ViewModel akan stabil sepanjang siklus hidup Activity.
+    val activityViewModelStoreOwner = checkNotNull(LocalContext.current as? androidx.lifecycle.ViewModelStoreOwner) {
+        "AppNavGraph harus berada dalam konteks ViewModelStoreOwner (misalnya, Activity)."
+    }
+
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
             LoginScreen(
@@ -30,8 +43,16 @@ fun AppNavGraph(
         }
         composable("camera") {
             CameraScreen(
+                viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
                 onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToAddFace = { navController.navigate("addFace") },
+                onNavigateToAddFace = { imageUri ->
+                    val route = if (imageUri != null) {
+                        "addFace?imageUri=${Uri.encode(imageUri.toString())}"
+                    } else {
+                        "addFace?imageUri=null"
+                    }
+                    navController.navigate(route)
+                },
                 onNavigateToProfile = { navController.navigate("profile") }
             )
         }
@@ -53,16 +74,28 @@ fun AppNavGraph(
             EditProfileScreen(navController = navController)
         }
 
-        composable("addFace") {
+        composable(
+            "addFace?imageUri={imageUri}",
+            arguments = listOf(navArgument("imageUri") {
+                type = NavType.StringType
+                nullable = true
+            })
+        ) { backStackEntry ->
+            val imageUriString = backStackEntry.arguments?.getString("imageUri")
+            val imageUri = imageUriString?.let {
+                if (it == "null") null else Uri.parse(Uri.decode(it))
+            }
+
             AddFaceScreen(
+                initialImageUri = imageUri,
                 onBack = {
-                    navController.navigate("camera")
+                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
                 },
                 onRetakePhoto = {
-                    navController.navigate("camera")
+                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
                 },
                 onSave = { _,_ ->
-                    navController.navigate("camera")
+                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
                 }
             )
         }
