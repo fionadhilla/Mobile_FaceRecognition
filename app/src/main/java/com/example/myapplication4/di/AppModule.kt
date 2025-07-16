@@ -1,5 +1,6 @@
 package com.example.myapplication4.di
 
+import com.example.myapplication4.data.api.WebSocketAuthService
 import com.example.myapplication4.data.repository.HistoryRepository
 import com.example.myapplication4.data.repository.HistoryRepositoryImpl
 import com.example.myapplication4.data.repository.LoginRepository
@@ -14,6 +15,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import com.example.myapplication4.ui.login.LoginStateViewModel
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -21,14 +23,26 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLoginRepository(): LoginRepository {
-        return LoginRepositoryImpl()
+    fun provideWebSocketAuthService(): WebSocketAuthService {
+        return WebSocketAuthService()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLoginRepository(webSocketAuthService: WebSocketAuthService): LoginRepository {
+        return LoginRepositoryImpl(webSocketAuthService)
     }
 
     @Provides
     @Singleton
     fun provideLoginUseCase(loginRepository: LoginRepository): LoginUseCase {
         return LoginUseCase(loginRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideLoginStateViewModel(): LoginStateViewModel {
+        return LoginStateViewModel()
     }
 
     @Provides

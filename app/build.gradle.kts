@@ -120,4 +120,7 @@ dependencies {
 
     // MediaPipe Tasks-vision (Face detection)
     implementation (libs.tasks.vision)
+
+    //websocket
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

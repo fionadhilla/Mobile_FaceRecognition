@@ -25,7 +25,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
     onLoginSuccess: () -> Unit = {}
 ) {
-    val username by viewModel.username.collectAsState()
+    val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
     val isLoggingIn by viewModel.isLoggingIn.collectAsState()
     val loginError by viewModel.loginError.collectAsState()
@@ -65,10 +65,11 @@ fun LoginScreen(
             )
 
             OutlinedTextField(
-                value = username,
-                onValueChange = viewModel::onUsernameChange,
-                label = { Text("Username", color = textColor) },
+                value = email,
+                onValueChange = viewModel::onEmailChange,
+                label = { Text("Email", color = textColor) },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), // Keyboard type for email
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = LocalTextStyle.current.copy(color = textColor)
             )
