@@ -44,7 +44,7 @@ class CameraViewModel @Inject constructor(
 
     private var lastProcessedBitmap: Bitmap? = null
     private var lastBitmapRotationDegrees: Int = 0
-    private val cropExpansionFactor = 0.2f
+    private val cropExpansionFactor = 0.9f
 
     init {
         initFaceDetector()

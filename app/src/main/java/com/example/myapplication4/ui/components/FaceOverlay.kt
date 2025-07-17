@@ -33,7 +33,7 @@ fun FaceOverlay(
                 viewWidth = canvasWidth,
                 viewHeight = canvasHeight,
                 isFrontCamera = isFrontCamera,
-                expansionFactor = 0.7f
+                expansionFactor = 0.7f,
             )
 
             drawRect(
