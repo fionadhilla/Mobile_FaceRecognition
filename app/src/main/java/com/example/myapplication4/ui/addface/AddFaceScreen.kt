@@ -32,6 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import java.io.File
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @Composable
 fun AddFaceScreen(
@@ -39,11 +41,14 @@ fun AddFaceScreen(
     initialImageUri: Uri?,
     onBack: () -> Unit,
     onRetakePhoto: () -> Unit,
-    onSave: (String, String) -> Unit
+    onSave: () -> Unit // Ubah parameter onSave
 ) {
     val context = LocalContext.current
     var loadedFaceBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isLoadingBitmap by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
 
     LaunchedEffect(initialImageUri) {
         if (initialImageUri != null) {
@@ -67,6 +72,7 @@ fun AddFaceScreen(
 
     DisposableEffect(initialImageUri) {
         onDispose {
+            // Cleanup temporary file when screen is disposed or URI changes
             initialImageUri?.path?.let { path ->
                 val file = File(path)
                 if (file.exists()) {
@@ -79,114 +85,131 @@ fun AddFaceScreen(
         }
     }
 
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ){
-        Column(
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { innerPadding ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
-        ) {
-            // Top Bar
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+                .background(Color.White)
+                .padding(innerPadding) // Terapkan padding dari Scaffold
+        ){
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(24.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
+                // Top Bar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(28.dp)
-                        .clickable {
-                            onBack()
-                        }
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "Tambah Wajah",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Box(
-                modifier = Modifier
-                    .width(250.dp)
-                    .aspectRatio(1f)
-                    .background(Color.LightGray)
-                    .align(alignment = Alignment.CenterHorizontally),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isLoadingBitmap) {
-                    CircularProgressIndicator()
-                } else if (loadedFaceBitmap != null) {
-                    Image(
-                        bitmap = loadedFaceBitmap!!.asImageBitmap(),
-                        contentDescription = "Cropped Face",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
+                        .fillMaxWidth()
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Wajah",
-                        tint = Color.DarkGray,
-                        modifier = Modifier.size(70.dp)
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clickable {
+                                onBack()
+                            }
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Tambah Wajah",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            // Foto Ulang Button
-            TextButton(
-                onClick = {
-                    onRetakePhoto()
-                },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text("Foto Ulang")
-            }
+                Box(
+                    modifier = Modifier
+                        .width(250.dp)
+                        .aspectRatio(1f)
+                        .background(Color.LightGray)
+                        .align(alignment = Alignment.CenterHorizontally),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isLoadingBitmap) {
+                        CircularProgressIndicator()
+                    } else if (loadedFaceBitmap != null) {
+                        Image(
+                            bitmap = loadedFaceBitmap!!.asImageBitmap(),
+                            contentDescription = "Cropped Face",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Wajah",
+                            tint = Color.DarkGray,
+                            modifier = Modifier.size(70.dp)
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-            // Input Nama
-            OutlinedTextField(
-                value = viewModel.name.value,
-                onValueChange = { viewModel.name.value = it },
-                label = { Text("Nama") },
-                modifier = Modifier.fillMaxWidth()
-            )
+                // Foto Ulang Button
+                TextButton(
+                    onClick = {
+                        onRetakePhoto()
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("Foto Ulang")
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            // Input Email
-            OutlinedTextField(
-                value = viewModel.email.value,
-                onValueChange = { viewModel.email.value = it },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth()
-            )
+                // Input Nama
+                OutlinedTextField(
+                    value = viewModel.name.value,
+                    onValueChange = { viewModel.name.value = it },
+                    label = { Text("Nama") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Simpan Button
-            Button(
-                onClick = {
-                    onSave(viewModel.name.value, viewModel.email.value)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-                    .height(48.dp),
-                shape = RoundedCornerShape(6.dp)
-            ) {
-                Text("Simpan Wajah")
+                // Input Email
+                OutlinedTextField(
+                    value = viewModel.email.value,
+                    onValueChange = { viewModel.email.value = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Simpan Button
+                Button(
+                    onClick = {
+                        viewModel.saveFaceData(
+                            faceBitmap = loadedFaceBitmap,
+                            onSuccess = {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Wajah berhasil disimpan")
+                                }
+                                onSave()
+                            },
+                            onError = { message ->
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Error: $message")
+                                }
+                            }
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text("Simpan Wajah")
+                }
             }
         }
     }

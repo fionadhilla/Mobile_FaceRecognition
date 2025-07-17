@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import android.net.Uri
+import com.example.myapplication4.face.FaceUtils
 
 @Composable
 fun CameraScreen(
@@ -62,6 +63,7 @@ fun CameraScreen(
     val lensFacing by viewModel.lensFacing.collectAsState()
     val detectionResult by viewModel.detectionResult.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
+    val verificationResult by viewModel.verificationResult.collectAsState()
     val previewView = remember {
         PreviewView(context).also {
             it.scaleType = PreviewView.ScaleType.FIT_CENTER
@@ -93,12 +95,25 @@ fun CameraScreen(
         }
     }
 
-    // Show snackbar when face is detected
     LaunchedEffect(isFaceDetected) {
         if (isFaceDetected) {
             snackbarHostState.showSnackbar(
                 message = "Wajah Terdeteksi",
                 duration = SnackbarDuration.Short
+            )
+        }
+    }
+
+    LaunchedEffect(verificationResult) {
+        verificationResult?.let { result ->
+            val message = if (result.isMatch) {
+                "Wajah dikenali: ${result.matchedUser?.name} (Jarak: %.2f)".format(result.distance)
+            } else {
+                "Wajah tidak dikenali. Jarak terdekat: %.2f".format(result.distance)
+            }
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Long
             )
         }
     }
@@ -177,9 +192,9 @@ fun CameraScreen(
                 onMoreOptionSelected = { selected ->
                     isMoreMenuExpanded = false
                     when (selected) {
-                        "face" -> {}
-                        "object" -> {}
-                        "more" -> {}
+                        "face" -> {  }
+                        "object" -> {  }
+                        "more" -> {  }
                     }
                 }
             )
@@ -222,6 +237,18 @@ fun CameraScreen(
                     Icon(
                         imageVector = Icons.Default.Cameraswitch,
                         contentDescription = "Switch Camera"
+                    )
+                }
+                verificationResult?.let { result ->
+                    Text(
+                        text = if (result.isMatch) "Wajah Dikenali: ${result.matchedUser?.name}" else "Wajah Tidak Dikenali",
+                        color = if (result.isMatch) Color.Green else Color.Red,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 16.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
