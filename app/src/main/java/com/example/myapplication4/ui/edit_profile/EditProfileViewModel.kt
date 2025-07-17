@@ -2,7 +2,7 @@ package com.example.myapplication4.ui.edit_profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication4.data.model.User
+import com.example.myapplication4.data.model.UserProfile
 import com.example.myapplication4.domain.usecase.GetUserProfileUseCase
 import com.example.myapplication4.domain.usecase.UpdateUserProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,9 +33,8 @@ class EditProfileViewModel @Inject constructor(
     private fun loadUserProfile() {
         viewModelScope.launch {
             getUserProfileUseCase().collect { profile ->
-                _fullName.value = profile.fullName
+                _fullName.value = profile.name
                 _email.value = profile.email
-                _phone.value = profile.phoneNumber
             }
         }
     }
@@ -54,14 +53,14 @@ class EditProfileViewModel @Inject constructor(
 
     fun saveChanges(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val updatedProfile = User(
-                fullName = _fullName.value,
+            val updatedProfile = UserProfile(
+                name = _fullName.value,
                 email = _email.value,
                 phoneNumber = _phone.value
             )
             val success = updateUserProfileUseCase(updatedProfile)
             if (success) {
-                onSuccess() // Panggil callback jika penyimpanan berhasil
+                onSuccess()
             }
         }
     }

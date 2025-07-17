@@ -120,4 +120,7 @@ dependencies {
 
     // MediaPipe Tasks-vision (Face detection)
     implementation (libs.tasks.vision)
+
+    //TF
+    implementation ("org.tensorflow:tensorflow-lite:2.17.0")
 }

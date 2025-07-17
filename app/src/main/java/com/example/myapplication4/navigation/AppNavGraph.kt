@@ -94,7 +94,7 @@ fun AppNavGraph(
                 onRetakePhoto = {
                     navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
                 },
-                onSave = { _,_ ->
+                onSave = {
                     navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
                 }
             )

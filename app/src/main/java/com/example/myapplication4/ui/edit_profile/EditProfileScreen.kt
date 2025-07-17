@@ -89,7 +89,11 @@ fun EditProfileScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { navController.popBackStack() },
+            onClick = {
+                viewModel.saveChanges {
+                    navController.popBackStack()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
