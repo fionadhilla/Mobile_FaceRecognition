@@ -8,7 +8,7 @@ import javax.inject.Singleton
 class FaceEmbedder @Inject constructor(
     private val faceNetModel: FaceNetModel
 ) {
-    fun getEmbeddings(faceBitmap: Bitmap): ByteArray? {
+        fun getEmbeddings(faceBitmap: Bitmap): FloatArray? {
         return faceNetModel.getFaceEmbedding(faceBitmap)
     }
 }

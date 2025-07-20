@@ -7,8 +7,8 @@ import javax.inject.Inject
 class RegisterUserWithFaceUseCase @Inject constructor(
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(name: String, email: String, embeddings: ByteArray): Boolean {
-        val user = User(name = name, email = email, embeddings = embeddings)
+    suspend operator fun invoke(name: String, email: String, phone: String, embeddings: FloatArray): Boolean {
+        val user = User(name = name, email = email, phone = phone, embeddings = embeddings)
         return userRepository.saveUserWithFace(user)
     }
 }

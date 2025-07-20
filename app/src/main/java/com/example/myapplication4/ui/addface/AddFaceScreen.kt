@@ -182,6 +182,16 @@ fun AddFaceScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Input Email
+                OutlinedTextField(
+                    value = viewModel.phone.value,
+                    onValueChange = { viewModel.phone.value = it },
+                    label = { Text("Phone (+62)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // Simpan Button

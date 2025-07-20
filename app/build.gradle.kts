@@ -60,6 +60,7 @@ android {
 
 dependencies {
     implementation(libs.play.services.mlkit.face.detection)
+    implementation(libs.androidx.media3.common.ktx)
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"
     val camerax_version = "1.1.0-beta01"

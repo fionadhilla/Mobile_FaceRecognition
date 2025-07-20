@@ -36,7 +36,7 @@ class FaceNetModel @Inject constructor(context: Context) {
         return modelBuffer
     }
 
-    fun getFaceEmbedding(faceBitmap: Bitmap): ByteArray? {
+    fun getFaceEmbedding(faceBitmap: Bitmap): FloatArray? {
         if (interpreter == null) {
             Log.e("FaceNetModel", "Interpreter is not initialized.")
             return null
@@ -63,13 +63,8 @@ class FaceNetModel @Inject constructor(context: Context) {
         try {
             interpreter?.run(inputBuffer, outputBuffer)
             val embeddingsFloatArray = outputBuffer[0]
-            val embeddingsByteArray = ByteArray(embeddingsFloatArray.size * 4) // Float to ByteArray
-            val byteBuffer = ByteBuffer.wrap(embeddingsByteArray).order(ByteOrder.nativeOrder())
-            for (value in embeddingsFloatArray) {
-                byteBuffer.putFloat(value)
-            }
             Log.d("FaceNetModel", "Face embedding generated: ${embeddingsFloatArray.size} dimensions.")
-            return embeddingsByteArray
+            return embeddingsFloatArray
         } catch (e: Exception) {
             Log.e("FaceNetModel", "Error running interpreter for embedding: ${e.message}", e)
             return null

@@ -78,7 +78,7 @@ object AppModule {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
-            "face_recognition_db"
+            "faceRecogntionDB"
         ).build()
     }
 

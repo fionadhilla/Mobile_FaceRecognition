@@ -12,7 +12,8 @@ data class User(
     val userId: Int? = null,
     val name: String,
     val email: String,
-    val embeddings: ByteArray,
+    val phone: String,
+    val embeddings: FloatArray,
     val role: String = "user"
 ) {
     override fun equals(other: Any?): Boolean {
@@ -25,6 +26,7 @@ data class User(
         if (userId != other.userId) return false
         if (name != other.name) return false
         if (email != other.email) return false
+        if (phone != other.phone) return false
         if (!embeddings.contentEquals(other.embeddings)) return false
         if (role != other.role) return false
 
@@ -36,6 +38,7 @@ data class User(
         result = 31 * result + (userId ?: 0)
         result = 31 * result + name.hashCode()
         result = 31 * result + email.hashCode()
+        result = 31 * result + phone.hashCode()
         result = 31 * result + embeddings.contentHashCode()
         result = 31 * result + role.hashCode()
         return result
