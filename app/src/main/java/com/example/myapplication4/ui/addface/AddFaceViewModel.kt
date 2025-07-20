@@ -4,16 +4,18 @@ import android.graphics.Bitmap
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication4.domain.usecase.RegisterUserWithFaceUseCase // Ubah impor
+import com.example.myapplication4.domain.usecase.RegisterUserWithFaceUseCase
 import com.example.myapplication4.face.FaceEmbedder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log
+import com.example.myapplication4.data.api.ApiResult
+import com.example.myapplication4.data.model.User
 
 @HiltViewModel
 class AddFaceViewModel @Inject constructor(
-    private val registerUserWithFaceUseCase: RegisterUserWithFaceUseCase, // Ubah nama variabel
+    private val registerUserWithFaceUseCase: RegisterUserWithFaceUseCase,
     private val faceEmbedder: FaceEmbedder
 ) : ViewModel() {
     val name = mutableStateOf("")
@@ -39,15 +41,20 @@ class AddFaceViewModel @Inject constructor(
         viewModelScope.launch {
             val embeddings = faceEmbedder.getEmbeddings(faceBitmap)
             if (embeddings != null) {
-                val success = registerUserWithFaceUseCase(name.value, email.value, phone.value, embeddings)
-                if (success) {
-                    onSuccess()
-                } else {
-                    onError("Gagal menyimpan data wajah.")
-                    Log.d("AddFace", "Nama: ${name.value}")
-                    Log.d("AddFace", "email: ${email.value}")
-                    Log.d("AddFace", "phone: ${phone.value}")
-                    Log.d("AddFace", "embeddings: $embeddings")
+                val user = User(name = name.value, email = email.value, phone = phone.value, embeddings = embeddings)
+                when (val result = registerUserWithFaceUseCase(user.name, user.email, user.phone, user.embeddings)) {
+                    is ApiResult.Success -> {
+                        if (result.data) {
+                            onSuccess()
+                        } else {
+                            onError("Gagal menyimpan data wajah.")
+                        }
+                    }
+                    is ApiResult.Error -> {
+                        onError("Error: ${result.message}")
+                        Log.e("AddFace", "Error saving face data: ${result.message}", result.exception)
+                    }
+                    ApiResult.Loading -> { }
                 }
             } else {
                 onError("Gagal menghasilkan embeddings wajah.")

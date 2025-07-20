@@ -61,6 +61,8 @@ android {
 dependencies {
     implementation(libs.play.services.mlkit.face.detection)
     implementation(libs.androidx.media3.common.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.common)
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"
     val camerax_version = "1.1.0-beta01"
@@ -73,6 +75,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // UI
     // Navigation
