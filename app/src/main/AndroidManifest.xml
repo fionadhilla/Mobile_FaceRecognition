@@ -17,19 +17,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication4"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="31">
-        <activity
-            android:name=".ui.edit_profile.edit_profile"
-            android:exported="false" />
-        <activity
-            android:name=".ui.attendace_confirmation.attendance_confirmation"
-            android:exported="false" />
-        <activity
-            android:name=".ui.notifikasi.Notifikasi"
-            android:exported="false" />
-        <activity
-            android:name=".ui.profile.ProfileActivity"
-            android:exported="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

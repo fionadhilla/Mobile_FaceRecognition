@@ -60,6 +60,7 @@ class LoginViewModel @Inject constructor(
                 Log.e("LoginViewModel", "Login failed: ${_loginError.value}")
             }
             _isLoggingIn.value = false
+            Log.d("LoginViewModel", "isLoggingIn set to false after login attempt.")
         }
     }
 }

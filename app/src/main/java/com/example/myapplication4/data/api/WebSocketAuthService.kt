@@ -11,8 +11,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCancellableCoroutine
+
 
 @Singleton
 class WebSocketAuthService @Inject constructor() {
@@ -58,7 +57,7 @@ class WebSocketAuthService @Inject constructor() {
                         // Jika bukan pesan echo login, coba parsing sebagai AUTH_RESPONSE atau jenis pesan lainnya
                         val jsonResponse = JSONObject(text)
                         when (jsonResponse.optString("type")) {
-                            "AUTH_RESPONSE" -> {
+                            "login" -> {
                                 val success = jsonResponse.optBoolean("success")
                                 val message = jsonResponse.optString("message")
                                 val token = jsonResponse.optString("token")

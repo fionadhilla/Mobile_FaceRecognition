@@ -4,4 +4,4 @@ class User(
     val fullName: String,
     val email: String,
     val phoneNumber: String
-)
+)//TODO: ini nyambung ke profile mau diubah

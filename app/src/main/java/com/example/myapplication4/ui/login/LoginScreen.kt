@@ -1,5 +1,6 @@
 package com.example.myapplication4.ui.login
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,6 +29,9 @@ fun LoginScreen(
     val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
     val isLoggingIn by viewModel.isLoggingIn.collectAsState()
+    LaunchedEffect(isLoggingIn) { // <-- Tambahkan LaunchedEffect ini
+        Log.d("LoginScreen", "isLoggingIn state changed to: $isLoggingIn")
+    }
     val loginError by viewModel.loginError.collectAsState()
     val textColor = MaterialTheme.colorScheme.onBackground
     val snackbarHostState = remember { SnackbarHostState() }

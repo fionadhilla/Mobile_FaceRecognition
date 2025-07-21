@@ -15,7 +15,7 @@ class LoginRepositoryImpl @Inject constructor(
     private val TAG = "LoginRepositoryImpl"
 
 
-    private val WEBSOCKET_URL = "wss://echo.websocket.org"
+    private val WEBSOCKET_URL = "ws://localhost:3000"
 
     override suspend fun loginUser(email: String, password: String): Result<String> {
         Log.d(TAG, "Attempting to login user: $email")
