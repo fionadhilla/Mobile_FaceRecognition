@@ -79,6 +79,12 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder().build()
+    }
+
+    @Provides
+    @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(
             context,
@@ -103,7 +109,7 @@ object AppModule {
     @Singleton
     fun provideWebSocketClient(okHttpClient: OkHttpClient, gson: Gson): WebSocketClient {
         val websocketClient = WebSocketClient(okHttpClient, gson)
-        websocketClient.connect("ws://172.19.176.1:3000")
+        websocketClient.connect("ws://192.168.100.47:3000")
         return websocketClient
     }
 

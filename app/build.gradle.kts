@@ -63,6 +63,8 @@ dependencies {
     implementation(libs.androidx.media3.common.ktx)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.common)
+    implementation(libs.androidx.hilt.work)
+
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"
     val camerax_version = "1.1.0-beta01"
