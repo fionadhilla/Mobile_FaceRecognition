@@ -5,15 +5,18 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
+import android.util.Log
 
 @HiltAndroidApp
-class MobileFaceRecogniton : Application(), Configuration.Provider {
-
+class MobileFaceRecognition : Application(), Configuration.Provider{
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
+        get() {
+            Log.d("WorkManagerConfig", "HiltWorkerFactory is being used (Manual Config via Configuration.Provider)!")
+            return Configuration.Builder()
+                .setWorkerFactory(workerFactory)
+                .build()
+        }
 }
