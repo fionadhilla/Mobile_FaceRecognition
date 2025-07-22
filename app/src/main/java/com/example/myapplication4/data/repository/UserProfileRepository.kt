@@ -1,9 +1,9 @@
 package com.example.myapplication4.data.repository
 
-import com.example.myapplication4.data.model.User
+import com.example.myapplication4.data.model.Admin
 import kotlinx.coroutines.flow.Flow
 
 interface UserProfileRepository {
-    fun getUserProfile(): Flow<User>
-    suspend fun updateUserProfile(profile: User): Boolean
+    fun getUserProfile(): Flow<Admin>
+    suspend fun updateUserProfile(profile: Admin): Boolean
 }

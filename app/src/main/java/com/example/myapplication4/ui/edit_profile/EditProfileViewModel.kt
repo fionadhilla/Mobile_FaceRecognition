@@ -2,7 +2,7 @@ package com.example.myapplication4.ui.edit_profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication4.data.model.User
+import com.example.myapplication4.data.model.Admin // Changed from User to Admin
 import com.example.myapplication4.domain.usecase.GetUserProfileUseCase
 import com.example.myapplication4.domain.usecase.UpdateUserProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,8 +23,8 @@ class EditProfileViewModel @Inject constructor(
     private val _email = MutableStateFlow("")
     val email = _email.asStateFlow()
 
-    private val _phone = MutableStateFlow("")
-    val phone = _phone.asStateFlow()
+    // private val _phone = MutableStateFlow("") // Removed phone
+    // val phone = _phone.asStateFlow() // Removed phone
 
     init {
         loadUserProfile()
@@ -33,9 +33,9 @@ class EditProfileViewModel @Inject constructor(
     private fun loadUserProfile() {
         viewModelScope.launch {
             getUserProfileUseCase().collect { profile ->
-                _fullName.value = profile.fullName
+                _fullName.value = profile.name // Changed from fullName to name
                 _email.value = profile.email
-                _phone.value = profile.phoneNumber
+                // _phone.value = profile.phoneNumber // Removed phone
             }
         }
     }
@@ -48,16 +48,21 @@ class EditProfileViewModel @Inject constructor(
         _email.value = newValue
     }
 
-    fun onPhoneChange(newValue: String) {
-        _phone.value = newValue
-    }
+    // fun onPhoneChange(newValue: String) { // Removed phone
+    //     _phone.value = newValue
+    // }
 
     fun saveChanges(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val updatedProfile = User(
-                fullName = _fullName.value,
+            // Need to retrieve current admin data to preserve id, password, role, createdAt
+            val currentProfile = getUserProfileUseCase().value
+            val updatedProfile = Admin(
+                id = currentProfile.id,
+                name = _fullName.value, // Changed from fullName to name
+                password = currentProfile.password, // Preserve existing password
                 email = _email.value,
-                phoneNumber = _phone.value
+                role = currentProfile.role, // Preserve existing role
+                createdAt = currentProfile.createdAt // Preserve existing createdAt
             )
             val success = updateUserProfileUseCase(updatedProfile)
             if (success) {

@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.ui.profile.ProfileViewModel
+import com.example.myapplication4.data.model.Admin // Import Admin model
 
 @Composable
 fun ProfileScreen(navController: NavController,
@@ -66,7 +67,7 @@ fun ProfileScreen(navController: NavController,
                     tint = Color.White
                 )
                 Text(
-                    text = userProfile.fullName,
+                    text = userProfile.name, // Changed from fullName to name
                     color = Color.White,
                     modifier = Modifier.padding(top = 8.dp, bottom = 50.dp),
                 )
@@ -121,25 +122,3 @@ fun ProfileMenuItem(text: String, onClick: () -> Unit) {
         Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
     }
 }
-
-//@Preview(showBackground = true, widthDp = 360, heightDp = 640)
-//@Composable
-//fun ProfileScreenPreview() {
-//    val navController = rememberNavController()
-//
-//    val profileViewModel = ProfileViewModel()
-//    profileViewModel.setUserName("Jane Doe")
-//
-//    val loginStateViewModel = object : LoginStateViewModel() {
-//        override fun logout() {
-//
-//        }
-//    }
-//
-//    ProfileScreen(
-//        navController = navController,
-//        viewModel = profileViewModel,
-//        loginStateViewModel = loginStateViewModel,
-//        onNavigateToEditProfile = {}
-//    )
-//}

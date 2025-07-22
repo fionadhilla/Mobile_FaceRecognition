@@ -8,5 +8,5 @@ data class Admin(
     val password: String,
     val email: String,
     val role: String, // 'admin', 'superadmin'
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime? = null
 )

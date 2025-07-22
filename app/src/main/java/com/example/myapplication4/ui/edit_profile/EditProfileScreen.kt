@@ -28,7 +28,7 @@ fun EditProfileScreen(
 ) {
     val fullName by viewModel.fullName.collectAsState()
     val email by viewModel.email.collectAsState()
-    val phone by viewModel.phone.collectAsState()
+    // val phone by viewModel.phone.collectAsState() // Removed phone
 
     Column(
         modifier = Modifier
@@ -75,16 +75,15 @@ fun EditProfileScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Nomor Handphone", modifier = Modifier.align(Alignment.Start))
-        OutlinedTextField(
-            value = phone,
-            onValueChange = viewModel::onPhoneChange,
-            placeholder = { Text("Masukkan Nomor HP") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-        )
+        // Spacer(modifier = Modifier.height(16.dp)) // Removed phone related UI
+        // Text("Nomor Handphone", modifier = Modifier.align(Alignment.Start))
+        // OutlinedTextField(
+        //     value = phone,
+        //     onValueChange = viewModel::onPhoneChange,
+        //     placeholder = { Text("Masukkan Nomor HP") },
+        //     modifier = Modifier.fillMaxWidth(),
+        //     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+        // )
 
         Spacer(modifier = Modifier.height(32.dp))
 
