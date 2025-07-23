@@ -2,12 +2,17 @@ package com.example.myapplication4.domain.usecase
 
 import com.example.myapplication4.data.model.Admin
 import com.example.myapplication4.data.repository.UserProfileRepository
+import kotlinx.coroutines.flow.first // Import ekstensi .first()
 import javax.inject.Inject
 
 class UpdateUserProfileUseCase @Inject constructor(
     private val repository: UserProfileRepository
 ) {
     suspend operator fun invoke(profile: Admin ): Boolean {
-        return repository.updateUserProfile(profile)
+        val adminId = profile.id
+        val username = profile.name // Asumsi 'name' di Admin.kt Anda adalah username
+        val email = profile.email
+
+        return repository.updateProfile(adminId, username, email).first().getOrThrow()
     }
 }

@@ -1,6 +1,7 @@
 package com.example.myapplication4.data.api
 
 import android.util.Log
+import com.example.myapplication4.data.model.Admin // Import your Admin data class
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -24,6 +25,9 @@ class WebSocketAuthService @Inject constructor() {
 
     var onAuthResult: ((Boolean, String?) -> Unit)? = null
     var onTokenReceived: ((String) -> Unit)? = null
+    // New callbacks for profile data
+    var onProfileReceived: ((Admin?, String?) -> Unit)? = null // Admin object or error message
+    var onProfileUpdateResult: ((Boolean, String?) -> Unit)? = null // Success/failure, message
 
     // Variabel untuk menyimpan pesan login terakhir yang dikirim
     private var lastSentLoginRequest: String? = null
@@ -45,41 +49,50 @@ class WebSocketAuthService @Inject constructor() {
             override fun onMessage(webSocket: WebSocket, text: String) {
                 Log.d(TAG, "Receiving: $text")
                 try {
-                    // --- START PERUBAHAN DI SINI ---
-                    if (text == lastSentLoginRequest) {
-                        // Jika pesan yang diterima sama dengan pesan login yang terakhir dikirim
-                        // Ini adalah indikasi bahwa kita menggunakan server echo dan pesan login kita dipantulkan kembali.
-                        // Anggap ini sebagai simulasi sukses login.
-                        Log.d(TAG, "Received echoed login request. Simulating successful authentication.")
-                        onAuthResult?.invoke(true, null)
-                        onTokenReceived?.invoke("dummy_jwt_token_from_echo") // Berikan token dummy
-                    } else {
-                        // Jika bukan pesan echo login, coba parsing sebagai AUTH_RESPONSE atau jenis pesan lainnya
-                        val jsonResponse = JSONObject(text)
-                        when (jsonResponse.optString("type")) {
-                            "login" -> {
-                                val success = jsonResponse.optBoolean("success")
-                                val message = jsonResponse.optString("message")
-                                val token = jsonResponse.optString("token")
-                                if (success && token.isNotEmpty()) {
-                                    onAuthResult?.invoke(true, null)
-                                    onTokenReceived?.invoke(token)
-                                } else {
-                                    onAuthResult?.invoke(false, message)
-                                }
-                            }
-                            // Tambahkan penanganan untuk jenis pesan lain dari backend jika ada
-                            else -> {
-                                Log.w(TAG, "Unknown message type received: ${jsonResponse.optString("type")}")
-                                // Anda bisa memilih untuk mengabaikannya atau memicu error jika pesan tidak diharapkan
+                    val jsonResponse = JSONObject(text)
+                    when (jsonResponse.optString("type")) {
+                        "login" -> {
+                            val success = jsonResponse.optBoolean("success")
+                            val message = jsonResponse.optString("message")
+                            val token = jsonResponse.optString("token")
+                            if (success && token.isNotEmpty()) {
+                                onAuthResult?.invoke(true, null)
+                                onTokenReceived?.invoke(token)
+                            } else {
+                                onAuthResult?.invoke(false, message)
                             }
                         }
+                        "profile_data" -> { // New: Handle profile data response
+                            val success = jsonResponse.optBoolean("success")
+                            if (success) {
+                                val data = jsonResponse.optJSONObject("data")
+                                if (data != null) {
+                                    val admin = Admin(
+                                        id = data.optString("id"),
+                                        name = data.optString("username"),
+                                        email = data.optString("email"),
+                                        role = data.optString("role")
+                                    )
+                                    onProfileReceived?.invoke(admin, null)
+                                } else {
+                                    onProfileReceived?.invoke(null, "Profile data is null.")
+                                }
+                            } else {
+                                onProfileReceived?.invoke(null, jsonResponse.optString("message"))
+                            }
+                        }
+                        "profile_update" -> { // New: Handle profile update response
+                            val success = jsonResponse.optBoolean("success")
+                            val message = jsonResponse.optString("message")
+                            onProfileUpdateResult?.invoke(success, message)
+                        }
+                        else -> {
+                            Log.w(TAG, "Unknown message type received: ${jsonResponse.optString("type")}")
+                        }
                     }
-                    // --- AKHIR PERUBAHAN DI SINI ---
 
                 } catch (e: Exception) {
                     Log.e(TAG, "Error parsing WebSocket message as JSON: ${e.message}", e)
-                    // Panggil onAuthResult dengan error jika parsing JSON gagal untuk respons yang tidak diprediksi
                     onAuthResult?.invoke(false, "Invalid or unexpected server response format.")
                 }
             }
@@ -97,13 +110,13 @@ class WebSocketAuthService @Inject constructor() {
                 Log.e(TAG, "WebSocket Failed: ${t.message}", t)
                 onAuthResult?.invoke(false, t.message ?: "Network error or connection failed")
                 this@WebSocketAuthService.webSocket = null
-                lastSentLoginRequest = null // Bersihkan request terakhir saat gagal
+                lastSentLoginRequest = null
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.d(TAG, "WebSocket Closed: $code / $reason")
                 this@WebSocketAuthService.webSocket = null
-                lastSentLoginRequest = null // Bersihkan request terakhir saat koneksi ditutup
+                lastSentLoginRequest = null
             }
         })
     }
@@ -130,6 +143,25 @@ class WebSocketAuthService @Inject constructor() {
             Log.e(TAG, "Failed to send message: $message. WebSocket might not be open.")
         }
         return sent
+    }
+
+    fun requestProfile(adminId: String) {
+        val message = JSONObject().apply {
+            put("type", "GET_PROFILE_REQUEST")
+            put("adminId", adminId)
+        }.toString()
+        sendMessage(message)
+    }
+
+    fun updateProfile(adminId: String, username: String, email: String) {
+        val message = JSONObject().apply {
+            put("type", "UPDATE_PROFILE_REQUEST")
+            put("adminId", adminId)
+            put("username", username)
+            put("email", email)
+            // Add other fields if you want to update them (e.g., password, but handle securely)
+        }.toString()
+        sendMessage(message)
     }
 
     fun disconnect() {

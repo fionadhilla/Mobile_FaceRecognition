@@ -71,7 +71,9 @@ fun AppNavGraph(
             )
         }
         composable("editProfile") {
-            EditProfileScreen(navController = navController)
+            EditProfileScreen(
+                onBackClick = { navController.popBackStack() } // Panggil navController.popBackStack() saat onBackClick dipanggil
+            )
         }
 
         composable(

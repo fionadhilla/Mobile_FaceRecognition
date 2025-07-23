@@ -51,8 +51,12 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideUserProfileRepository(): UserProfileRepository {
-        return UserProfileRepositoryImpl()
+    fun provideUserProfileRepository(
+        // Tambahkan parameter webSocketAuthService di sini
+        webSocketAuthService: WebSocketAuthService
+    ): UserProfileRepository {
+        // Sekarang, teruskan webSocketAuthService ke konstruktor UserProfileRepositoryImpl
+        return UserProfileRepositoryImpl(webSocketAuthService)
     }
 
     @Provides

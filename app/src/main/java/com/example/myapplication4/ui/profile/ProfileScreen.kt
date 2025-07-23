@@ -30,7 +30,9 @@ fun ProfileScreen(navController: NavController,
                   loginStateViewModel: LoginStateViewModel,
                   onNavigateToEditProfile: () -> Unit = {})
 {
-    val userProfile by viewModel.userProfile.collectAsState()
+    val adminProfile by viewModel.adminProfile.collectAsState() // UBAH userProfile MENJADI adminProfile
+    val loading by viewModel.loading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
@@ -67,7 +69,7 @@ fun ProfileScreen(navController: NavController,
                     tint = Color.White
                 )
                 Text(
-                    text = userProfile.name, // Changed from fullName to name
+                    text = adminProfile?.name.orEmpty(), // Changed from fullName to name
                     color = Color.White,
                     modifier = Modifier.padding(top = 8.dp, bottom = 50.dp),
                 )
