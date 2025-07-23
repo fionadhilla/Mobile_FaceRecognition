@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val syncWorkRequest = PeriodicWorkRequestBuilder<FaceSyncWorker>(
-            15, TimeUnit.MINUTES
+            15, TimeUnit.SECONDS
         ).build()
 
         WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(

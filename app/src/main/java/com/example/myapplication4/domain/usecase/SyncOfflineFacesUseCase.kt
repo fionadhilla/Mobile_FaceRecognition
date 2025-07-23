@@ -21,6 +21,14 @@ class SyncOfflineFacesUseCase @Inject constructor(
             return false
         }
 
+        Log.d("SyncOfflineFacesUseCase", "Waiting for WebSocket client to be connected...")
+        val isWebSocketConnected = webSocketClient.isConnected.first { it }
+        if (!isWebSocketConnected) {
+            Log.e("SyncOfflineFacesUseCase", "WebSocket client is not connected, cannot sync online.")
+            return false
+        }
+
+
         val pendingSyncs = faceRepository.getPendingSyncs().first()
         if (pendingSyncs.isEmpty()) {
             Log.d("SyncOfflineFacesUseCase", "No pending sync operations.")

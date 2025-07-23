@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.util.Log
 
 interface FaceRepository {
     suspend fun registerUserWithFace(user: User): ApiResult<Boolean>
@@ -48,7 +49,8 @@ class FaceRepositoryImpl @Inject constructor(
         } else {
             val localId = userDao.insertUser(user).toInt()
             pendingSyncDao.insertPendingSync(PendingSyncData(userLocalId = localId, action = "ADD"))
-            ApiResult.Success(true) // Consider this a success for offline operation
+            Log.d("SendToPending", "Data berhasil disimpan pada pending sync")
+            ApiResult.Success(true)
         }
     }
 
