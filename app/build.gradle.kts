@@ -60,12 +60,17 @@ android {
 }
 
 dependencies {
-    implementation(libs.play.services.mlkit.face.detection)
+    implementation(libs.play.services.mlkit.face.detection) {
+        exclude(group = "org.tensorflow", module = "tensorflow-lite-api")
+        exclude(group = "com.google.android.gms", module = "play-services-tflite-java")
+    }
+
     implementation(libs.androidx.media3.common.ktx)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.common)
     implementation(libs.androidx.hilt.work)
     implementation("androidx.startup:startup-runtime:1.2.0")
+    implementation(libs.litert.support.api)
 
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"
@@ -128,7 +133,4 @@ dependencies {
 
     // MediaPipe Tasks-vision (Face detection)
     implementation (libs.tasks.vision)
-
-    //TF
-    implementation ("org.tensorflow:tensorflow-lite:2.17.0")
 }

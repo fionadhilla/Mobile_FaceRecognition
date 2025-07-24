@@ -74,30 +74,8 @@ fun AppNavGraph(
             EditProfileScreen(navController = navController)
         }
 
-        composable(
-            "addFace?imageUri={imageUri}",
-            arguments = listOf(navArgument("imageUri") {
-                type = NavType.StringType
-                nullable = true
-            })
-        ) { backStackEntry ->
-            val imageUriString = backStackEntry.arguments?.getString("imageUri")
-            val imageUri = imageUriString?.let {
-                if (it == "null") null else Uri.parse(Uri.decode(it))
-            }
-
-            AddFaceScreen(
-                initialImageUri = imageUri,
-                onBack = {
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                },
-                onRetakePhoto = {
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                },
-                onSave = {
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                }
-            )
+        composable("addFace") {
+            AddFaceScreen(navController = navController) // Tidak perlu initialImageUri
         }
     }
 }

@@ -25,6 +25,7 @@ import com.example.myapplication4.data.api.WebSocketClient
 import com.example.myapplication4.data.repository.FaceRepository
 import com.example.myapplication4.data.repository.FaceRepositoryImpl
 import com.example.myapplication4.domain.utils.NetworkUtils
+import com.example.myapplication4.face.AddFaceDetector
 
 import dagger.Module
 import dagger.Provides
@@ -152,6 +153,12 @@ object AppModule {
     @Singleton
     fun provideFaceEmbedder(faceNetModel: FaceNetModel): FaceEmbedder {
         return FaceEmbedder(faceNetModel)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAddFaceDetector(@ApplicationContext context: Context): AddFaceDetector {
+        return AddFaceDetector(context)
     }
 
     @Provides
