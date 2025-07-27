@@ -21,7 +21,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication4.ui.login.LoginStateViewModel
-import com.example.myapplication4.ui.profile.ProfileViewModel // Tidak perlu diubah, tapi memastikan import benar
+import com.example.myapplication4.ui.profile.ProfileViewModel
+import com.example.myapplication4.data.model.Admin
 
 @Composable
 fun ProfileScreen(navController: NavController,
@@ -29,7 +30,9 @@ fun ProfileScreen(navController: NavController,
                   loginStateViewModel: LoginStateViewModel,
                   onNavigateToEditProfile: () -> Unit = {})
 {
-    val userProfile by viewModel.userProfile.collectAsState() // userProfile sekarang adalah UserProfile
+    val adminProfile by viewModel.adminProfile.collectAsState()
+    val loading by viewModel.loading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
@@ -66,7 +69,7 @@ fun ProfileScreen(navController: NavController,
                     tint = Color.White
                 )
                 Text(
-                    text = userProfile.name, // Menggunakan .name
+                    text = adminProfile?.name.orEmpty(), // Changed from fullName to name
                     color = Color.White,
                     modifier = Modifier.padding(top = 8.dp, bottom = 50.dp),
                 )

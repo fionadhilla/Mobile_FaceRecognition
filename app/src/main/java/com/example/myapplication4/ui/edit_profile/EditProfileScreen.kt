@@ -1,104 +1,84 @@
 package com.example.myapplication4.ui.edit_profile
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import com.example.myapplication4.R
+import com.example.myapplication4.ui.components.TopBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
-    navController: NavController,
+    onBackClick: () -> Unit,
     viewModel: EditProfileViewModel = hiltViewModel()
 ) {
-    val fullName by viewModel.fullName.collectAsState()
+    // Mengubah fullName menjadi name
+    val name by viewModel.name.collectAsState()
     val email by viewModel.email.collectAsState()
-    val phone by viewModel.phone.collectAsState()
+    val loading by viewModel.loading.collectAsState()
+    val updateSuccess by viewModel.updateSuccess.collectAsState()
+    val error by viewModel.error.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Edit Profile",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 16.dp)
-        )
-
-        Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = "Profile Picture",
+    Scaffold(
+        topBar = {
+            TopBar(
+                title = "Edit Profil",
+                onBackClick = onBackClick
+            )
+        }
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .size(100.dp)
-                .padding(vertical = 8.dp)
-        )
-
-        Text(text = "Change photo", color = MaterialTheme.colorScheme.primary)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text("Full Name", modifier = Modifier.align(Alignment.Start))
-        OutlinedTextField(
-            value = fullName,
-            onValueChange = viewModel::onFullNameChange,
-            placeholder = { Text("Masukkan Nama Lengkap") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Email", modifier = Modifier.align(Alignment.Start))
-        OutlinedTextField(
-            value = email,
-            onValueChange = viewModel::onEmailChange,
-            placeholder = { Text("Masukkan Email") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Nomor Handphone", modifier = Modifier.align(Alignment.Start))
-        OutlinedTextField(
-            value = phone,
-            onValueChange = viewModel::onPhoneChange,
-            placeholder = { Text("Masukkan Nomor HP") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Button(
-            onClick = {
-                viewModel.saveChanges {
-                    navController.popBackStack()
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Save Changes")
+            OutlinedTextField(
+                value = name,
+                onValueChange = { viewModel.onNameChange(it) },
+                label = { Text("Nama Lengkap") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // TextField untuk Email
+            OutlinedTextField(
+                value = email,
+                onValueChange = { viewModel.onEmailChange(it) },
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Button(
+                onClick = { viewModel.updateProfile() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !loading
+            ) {
+                if (loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Simpan Perubahan")
+                }
+            }
+
+            updateSuccess?.let { success ->
+                if (success) {
+                    Text("Profil berhasil diperbarui!", color = MaterialTheme.colorScheme.primary)
+                } else {
+                    Text("Gagal memperbarui profil.", color = MaterialTheme.colorScheme.error)
+                }
+            }
+
+            error?.let { errorMessage ->
+                Text("Error: $errorMessage", color = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }

@@ -35,7 +35,6 @@ class MediaPipeFaceDetector(
             }
             .build()
         faceDetector = FaceDetector.createFromOptions(context, options)
-
     }
 
     fun detect(bitmap: Bitmap) {

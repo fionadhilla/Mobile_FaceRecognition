@@ -10,8 +10,6 @@ import com.example.myapplication4.data.repository.LoginRepository
 import com.example.myapplication4.data.repository.LoginRepositoryImpl
 import com.example.myapplication4.data.repository.UserProfileRepository
 import com.example.myapplication4.data.repository.UserProfileRepositoryImpl
-import com.example.myapplication4.data.repository.UserRepository
-import com.example.myapplication4.data.repository.UserRepositoryImpl
 import com.example.myapplication4.domain.usecase.GetUserProfileUseCase
 import com.example.myapplication4.domain.usecase.LoginUseCase
 import com.example.myapplication4.domain.usecase.RegisterUserWithFaceUseCase
@@ -20,6 +18,15 @@ import com.example.myapplication4.face.FaceEmbedder
 import com.example.myapplication4.face.FaceNetModel
 import androidx.room.Room
 import com.example.myapplication4.domain.usecase.VerifyFaceUseCase
+import com.example.myapplication4.domain.usecase.SyncOfflineFacesUseCase
+import okhttp3.OkHttpClient
+import com.google.gson.Gson
+import com.example.myapplication4.data.api.WebSocketClient
+import com.example.myapplication4.data.repository.FaceRepository
+import com.example.myapplication4.data.repository.FaceRepositoryImpl
+import com.example.myapplication4.domain.utils.NetworkUtils
+import com.example.myapplication4.face.AddFaceDetector
+import com.example.myapplication4.ui.login.LoginStateViewModel
 
 import dagger.Module
 import dagger.Provides
@@ -34,8 +41,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLoginRepository(): LoginRepository {
-        return LoginRepositoryImpl()
+    fun provideLoginRepository(WebSocketClient: WebSocketClient): LoginRepository {
+        return LoginRepositoryImpl(WebSocketClient)
     }
 
     @Provides
@@ -46,12 +53,20 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideLoginStateViewModel(): LoginStateViewModel {
+        return LoginStateViewModel()
+    }
+
+    @Provides
+    @Singleton
     fun provideHistoryRepository(): HistoryRepository = HistoryRepositoryImpl()
 
     @Provides
     @Singleton
-    fun provideUserProfileRepository(): UserProfileRepository {
-        return UserProfileRepositoryImpl()
+    fun provideUserProfileRepository(
+        webSocketAuthService: WebSocketClient
+    ): UserProfileRepository {
+        return UserProfileRepositoryImpl(webSocketAuthService)
     }
 
     @Provides
@@ -74,12 +89,38 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder().build()
+    }
+
+    @Provides
+    @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
-            "face_recognition_db"
-        ).build()
+            "faceRecogntionDB"
+        ).fallbackToDestructiveMigration().build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson {
+        return Gson()
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkUtils(@ApplicationContext context: Context): NetworkUtils {
+        return NetworkUtils(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideWebSocketClient(okHttpClient: OkHttpClient, gson: Gson): WebSocketClient {
+        val websocketClient = WebSocketClient(okHttpClient, gson)
+        websocketClient.connect("ws://192.168.100.47:3000")
+        return websocketClient
     }
 
     @Provides
@@ -92,21 +133,23 @@ object AppModule {
     @Singleton
     fun provideFaceRepository(
         userDao: UserDao,
-        pendingSyncDao: PendingSyncDao
-    ): UserRepository {
-        return UserRepositoryImpl(userDao, pendingSyncDao)
+        pendingSyncDao: PendingSyncDao,
+        webSocketClient: WebSocketClient,
+        networkUtils: NetworkUtils
+    ): FaceRepository {
+        return FaceRepositoryImpl(userDao, pendingSyncDao, webSocketClient, networkUtils)
     }
 
     @Provides
     @Singleton
-    fun provideRegisterUserWithFaceUseCase(userRepository: UserRepository): RegisterUserWithFaceUseCase {
-        return RegisterUserWithFaceUseCase(userRepository)
+    fun provideRegisterFaceUseCase(faceRepository: FaceRepository): RegisterUserWithFaceUseCase {
+        return RegisterUserWithFaceUseCase(faceRepository)
     }
 
     @Provides
     @Singleton
-    fun provideVerifyFaceUseCase(userRepository: UserRepository): VerifyFaceUseCase {
-        return VerifyFaceUseCase(userRepository)
+    fun provideVerifyFaceUseCase(faceRepository: FaceRepository): VerifyFaceUseCase {
+        return VerifyFaceUseCase(faceRepository)
     }
 
     @Provides
@@ -119,5 +162,21 @@ object AppModule {
     @Singleton
     fun provideFaceEmbedder(faceNetModel: FaceNetModel): FaceEmbedder {
         return FaceEmbedder(faceNetModel)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAddFaceDetector(@ApplicationContext context: Context): AddFaceDetector {
+        return AddFaceDetector(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSyncOfflineFacesUseCase(
+        faceRepository: FaceRepository,
+        webSocketClient: WebSocketClient,
+        networkUtils: NetworkUtils
+    ): SyncOfflineFacesUseCase {
+        return SyncOfflineFacesUseCase(faceRepository, webSocketClient, networkUtils)
     }
 }

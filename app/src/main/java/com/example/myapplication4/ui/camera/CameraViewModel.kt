@@ -26,12 +26,15 @@ import javax.inject.Inject
 import com.example.myapplication4.face.FaceEmbedder
 import com.example.myapplication4.domain.usecase.VerifyFaceUseCase
 import com.example.myapplication4.data.model.FaceVerificationResult
+import com.example.myapplication4.data.api.ApiResult
+import com.example.myapplication4.domain.usecase.SyncOfflineFacesUseCase
 
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     application: Application,
     private val faceEmbedder: FaceEmbedder,
-    private val verifyFaceUseCase: VerifyFaceUseCase
+    private val verifyFaceUseCase: VerifyFaceUseCase,
+    private val syncOfflineFacesUseCase: SyncOfflineFacesUseCase
 ) : AndroidViewModel(application) {
 
     private val _lensFacing = MutableStateFlow(CameraSelector.LENS_FACING_FRONT)
@@ -46,7 +49,7 @@ class CameraViewModel @Inject constructor(
     private val _croppedFaceImageUri = MutableStateFlow<Uri?>(null)
     val croppedFaceImageUri: StateFlow<Uri?> = _croppedFaceImageUri
 
-    private val _verificationResult = MutableStateFlow<FaceVerificationResult?>(null) // State untuk hasil verifikasi
+    private val _verificationResult = MutableStateFlow<FaceVerificationResult?>(null)
     val verificationResult: StateFlow<FaceVerificationResult?> = _verificationResult
 
     private var faceDetector: MediaPipeFaceDetector? = null
@@ -57,6 +60,7 @@ class CameraViewModel @Inject constructor(
 
     init {
         initFaceDetector()
+        startPeriodicSync() // Mulai sinkronisasi berkala
     }
 
     private fun initFaceDetector() {
@@ -82,7 +86,6 @@ class CameraViewModel @Inject constructor(
                 if (_isFaceDetected.value) {
                     verifyDetectedFace()
                 }
-                //_isFaceDetected.value = false
             }
         } else if (!detected && _isFaceDetected.value) {
             _isFaceDetected.value = false
@@ -102,6 +105,7 @@ class CameraViewModel @Inject constructor(
         lastProcessedBitmap?.recycle()
         lastProcessedBitmap = bitmap.config?.let { bitmap.copy(it, true) }
         lastBitmapRotationDegrees = rotationDegrees
+        Log.d("CameraViewModel", "processFrame: Received bitmap Dims: ${bitmap.width}x${bitmap.height}, Rotation: $rotationDegrees. Passing to faceDetector.")
         faceDetector?.detect(bitmap)
     }
 
@@ -160,9 +164,17 @@ class CameraViewModel @Inject constructor(
                     croppedBitmap.recycle()
 
                     if (embeddings != null) {
-                        val result = verifyFaceUseCase(embeddings)
-                        _verificationResult.value = result
-                        Log.d("CameraViewModel", "Verification result: ${result.isMatch}, Matched User: ${result.matchedUser?.name}, Distance: ${result.distance}")
+                        when (val result = verifyFaceUseCase(embeddings)) {
+                            is ApiResult.Success -> {
+                                _verificationResult.value = result.data
+                                Log.d("CameraViewModel", "Verification result: ${result.data.isMatch}, Matched User: ${result.data.matchedUser?.name}, Distance: ${result.data.distance}")
+                            }
+                            is ApiResult.Error -> {
+                                Log.e("CameraViewModel", "Error during verification: ${result.message}", result.exception)
+                                _verificationResult.value = FaceVerificationResult(isMatch = false, matchedUser = null, distance = -1.0f)
+                            }
+                            ApiResult.Loading -> { }
+                        }
                     } else {
                         Log.e("CameraViewModel", "Gagal mendapatkan embeddings untuk verifikasi.")
                         _verificationResult.value = FaceVerificationResult(isMatch = false, matchedUser = null, distance = -1.0f)
@@ -248,6 +260,15 @@ class CameraViewModel @Inject constructor(
             } else {
                 Log.d("CameraViewModel", "Tidak ada bitmap atau hasil deteksi wajah yang tersedia untuk di-crop. isFaceDetected was ${isFaceDetected.value}")
                 _croppedFaceImageUri.value = null
+            }
+        }
+    }
+
+    private fun startPeriodicSync() {
+        viewModelScope.launch {
+            while (true) {
+                delay(30000L)
+                syncOfflineFacesUseCase()
             }
         }
     }

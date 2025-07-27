@@ -36,7 +36,7 @@ class FaceNetModel @Inject constructor(context: Context) {
         return modelBuffer
     }
 
-    fun getFaceEmbedding(faceBitmap: Bitmap): ByteArray? {
+    fun getFaceEmbedding(faceBitmap: Bitmap): FloatArray ? { // Tipe kembalian adalah ByteArray?
         if (interpreter == null) {
             Log.e("FaceNetModel", "Interpreter is not initialized.")
             return null
@@ -49,9 +49,8 @@ class FaceNetModel @Inject constructor(context: Context) {
         inputBuffer.rewind()
 
         for (y in 0 until inputImageHeight) {
-            for (x in 0 until inputImageWidth) {
-                val pixel = scaledBitmap.getPixel(x, y)
-                // Normalisasi piksel ke [0, 1] dan kemudian ke [-1, 1] jika diperlukan oleh model
+            for (x in 0 until inputImageWidth) { // Perbaikan: inner loop should use x
+                val pixel = scaledBitmap.getPixel(x, y) // Perbaikan: getPixel(x, y)
                 inputBuffer.putFloat(((android.graphics.Color.red(pixel) / 255.0f) * 2.0f - 1.0f))
                 inputBuffer.putFloat(((android.graphics.Color.green(pixel) / 255.0f) * 2.0f - 1.0f))
                 inputBuffer.putFloat(((android.graphics.Color.blue(pixel) / 255.0f) * 2.0f - 1.0f))
@@ -63,16 +62,13 @@ class FaceNetModel @Inject constructor(context: Context) {
         try {
             interpreter?.run(inputBuffer, outputBuffer)
             val embeddingsFloatArray = outputBuffer[0]
-            val embeddingsByteArray = ByteArray(embeddingsFloatArray.size * 4) // Float to ByteArray
-            val byteBuffer = ByteBuffer.wrap(embeddingsByteArray).order(ByteOrder.nativeOrder())
-            for (value in embeddingsFloatArray) {
-                byteBuffer.putFloat(value)
-            }
             Log.d("FaceNetModel", "Face embedding generated: ${embeddingsFloatArray.size} dimensions.")
-            return embeddingsByteArray
+            return embeddingsFloatArray
         } catch (e: Exception) {
             Log.e("FaceNetModel", "Error running interpreter for embedding: ${e.message}", e)
             return null
+        } finally {
+            scaledBitmap.recycle()
         }
     }
 

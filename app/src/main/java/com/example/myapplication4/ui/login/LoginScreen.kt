@@ -1,5 +1,6 @@
 package com.example.myapplication4.ui.login
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,9 +26,12 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
     onLoginSuccess: () -> Unit = {}
 ) {
-    val username by viewModel.username.collectAsState()
+    val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
     val isLoggingIn by viewModel.isLoggingIn.collectAsState()
+    LaunchedEffect(isLoggingIn) { //
+        Log.d("LoginScreen", "isLoggingIn state changed to: $isLoggingIn")
+    }
     val loginError by viewModel.loginError.collectAsState()
     val textColor = MaterialTheme.colorScheme.onBackground
     val snackbarHostState = remember { SnackbarHostState() }
@@ -65,10 +69,11 @@ fun LoginScreen(
             )
 
             OutlinedTextField(
-                value = username,
-                onValueChange = viewModel::onUsernameChange,
-                label = { Text("Username", color = textColor) },
+                value = email,
+                onValueChange = viewModel::onEmailChange,
+                label = { Text("Email", color = textColor) },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = LocalTextStyle.current.copy(color = textColor)
             )

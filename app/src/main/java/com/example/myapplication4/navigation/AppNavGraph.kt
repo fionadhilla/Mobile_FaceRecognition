@@ -24,8 +24,6 @@ fun AppNavGraph(
     loginStateViewModel: LoginStateViewModel,
     startDestination: String
 ) {
-    // Dapatkan ViewModelStoreOwner dari Activity saat ini.
-    // Ini menjamin instance ViewModel akan stabil sepanjang siklus hidup Activity.
     val activityViewModelStoreOwner = checkNotNull(LocalContext.current as? androidx.lifecycle.ViewModelStoreOwner) {
         "AppNavGraph harus berada dalam konteks ViewModelStoreOwner (misalnya, Activity)."
     }
@@ -45,14 +43,7 @@ fun AppNavGraph(
             CameraScreen(
                 viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
                 onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToAddFace = { imageUri ->
-                    val route = if (imageUri != null) {
-                        "addFace?imageUri=${Uri.encode(imageUri.toString())}"
-                    } else {
-                        "addFace?imageUri=null"
-                    }
-                    navController.navigate(route)
-                },
+                onNavigateToAddFace = {},
                 onNavigateToProfile = { navController.navigate("profile") }
             )
         }
@@ -71,33 +62,13 @@ fun AppNavGraph(
             )
         }
         composable("editProfile") {
-            EditProfileScreen(navController = navController)
+            EditProfileScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
 
-        composable(
-            "addFace?imageUri={imageUri}",
-            arguments = listOf(navArgument("imageUri") {
-                type = NavType.StringType
-                nullable = true
-            })
-        ) { backStackEntry ->
-            val imageUriString = backStackEntry.arguments?.getString("imageUri")
-            val imageUri = imageUriString?.let {
-                if (it == "null") null else Uri.parse(Uri.decode(it))
-            }
-
-            AddFaceScreen(
-                initialImageUri = imageUri,
-                onBack = {
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                },
-                onRetakePhoto = {
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                },
-                onSave = {
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                }
-            )
+        composable("addFace") {
+            AddFaceScreen(navController = navController) // Tidak perlu initialImageUri
         }
     }
 }

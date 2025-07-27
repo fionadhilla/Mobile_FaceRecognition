@@ -1,6 +1,8 @@
 package com.example.myapplication4.data.model
 
 data class Admin(
-    val username: String,
-    val password: String
+    val id: String,
+    val name: String,
+    val email: String,
+    val role: String
 )

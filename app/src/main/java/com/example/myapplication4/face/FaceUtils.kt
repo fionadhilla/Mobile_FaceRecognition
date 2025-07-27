@@ -26,13 +26,6 @@ object FaceUtils {
         return mutableBitmap
     }
 
-    fun byteArrayToFloatArray(byteArray: ByteArray): FloatArray {
-        val buffer = ByteBuffer.wrap(byteArray).order(ByteOrder.nativeOrder())
-        val floatArray = FloatArray(byteArray.size / 4)
-        buffer.asFloatBuffer().get(floatArray)
-        return floatArray
-    }
-
     fun calculateEuclideanDistance(embeddings1: FloatArray, embeddings2: FloatArray): Float {
         if (embeddings1.size != embeddings2.size) {
             throw IllegalArgumentException("Embeddings arrays must have the same size.")
@@ -46,5 +39,5 @@ object FaceUtils {
         return sqrt(sumOfSquares)
     }
 
-    const val RECOGNITION_THRESHOLD = 0.9f
+    const val RECOGNITION_THRESHOLD = 0.6f
 }

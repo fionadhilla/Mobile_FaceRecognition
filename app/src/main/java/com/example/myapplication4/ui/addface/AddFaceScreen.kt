@@ -1,12 +1,12 @@
 package com.example.myapplication4.ui.addface
 
 import android.util.Log
+import android.util.Size
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -15,201 +15,254 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.myapplication4.ui.camera.CameraViewModel
-import androidx.compose.foundation.Image
-import android.net.Uri
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
-import java.io.File
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.setValue
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.viewinterop.AndroidView
+// import com.example.myapplication4.face.MediaPipeFaceDetector // TIDAK PERLU DIIMPOR LAGI DI SINI
+import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
+import com.example.myapplication4.ui.components.FaceOverlay
+import java.util.concurrent.Executors
+import androidx.navigation.NavController
+import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFaceScreen(
-    viewModel: AddFaceViewModel = hiltViewModel(),
-    initialImageUri: Uri?,
-    onBack: () -> Unit,
-    onRetakePhoto: () -> Unit,
-    onSave: () -> Unit // Ubah parameter onSave
+    navController: NavController,
+    viewModel: AddFaceViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    var loadedFaceBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var isLoadingBitmap by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val recordingState by viewModel.recordingState.collectAsState()
+    val recordingProgress by viewModel.recordingProgress.collectAsState()
+    val message by viewModel.message.collectAsState()
+    val lensFacing by viewModel.lensFacing.collectAsState()
+    val isFaceDetected by viewModel.isFaceDetected.collectAsState()
+
+    var liveDetectionResult by remember { mutableStateOf<FaceDetectorResult?>(null) }
+    val previewView = remember { PreviewView(context) }
+
     val snackbarHostState = remember { SnackbarHostState() }
+
     val coroutineScope = rememberCoroutineScope()
 
+    var imageWidth by remember { mutableStateOf(1) }
+    var imageHeight by remember { mutableStateOf(1) }
 
-    LaunchedEffect(initialImageUri) {
-        if (initialImageUri != null) {
-            isLoadingBitmap = true
-            try {
-                val inputStream = context.contentResolver.openInputStream(initialImageUri)
-                loadedFaceBitmap = inputStream?.use {
-                    BitmapFactory.decodeStream(it)
+    var userNameInput by remember { mutableStateOf(viewModel.name.value) }
+    var userEmailInput by remember { mutableStateOf(viewModel.email.value) }
+    var userPhoneInput by remember { mutableStateOf(viewModel.phone.value) }
+
+
+    LaunchedEffect(Unit) {
+        val cameraProvider = ProcessCameraProvider.getInstance(context).get()
+        val preview = Preview.Builder().build().apply {
+            setSurfaceProvider(previewView.surfaceProvider)
+        }
+
+        val cameraSelector = CameraSelector.Builder()
+            .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+            .build()
+
+        val executor = Executors.newSingleThreadExecutor()
+        val imageAnalysis = ImageAnalysis.Builder()
+            .setTargetResolution(Size(480, 640))
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+            .also {
+                it.setAnalyzer(executor) { imageProxy ->
+                    try {
+                        val bitmap = imageProxy.toBitmap()
+                        imageWidth = bitmap.width
+                        imageHeight = bitmap.height
+                        viewModel.processLiveFrame(bitmap, imageProxy.imageInfo.rotationDegrees)
+
+                        if (recordingState == RecordingState.RECORDING) {
+                            viewModel.processFrameForRecording(imageProxy)
+                        } else {
+                            imageProxy.close()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("AddFaceScreen", "Analyzer error: ${e.message}")
+                        imageProxy.close()
+                    }
                 }
-                Log.d("AddFaceScreen", "Bitmap loaded from URI: ${loadedFaceBitmap != null}")
-            } catch (e: Exception) {
-                Log.e("AddFaceScreen", "Failed to load bitmap from URI: ${e.message}", e)
-                loadedFaceBitmap = null
-            } finally {
-                isLoadingBitmap = false
             }
-        } else {
-            loadedFaceBitmap = null
+
+        try {
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+        } catch (e: Exception) {
+            Log.e("AddFaceScreen", "Bind failed", e)
         }
     }
 
-    DisposableEffect(initialImageUri) {
+    LaunchedEffect(isFaceDetected) {
+        if (isFaceDetected) { // Perubahan: langsung pakai isFaceDetected dari ViewModel
+            snackbarHostState.showSnackbar(
+                message = "Wajah Terdeteksi!",
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
+
+    DisposableEffect(Unit) {
         onDispose {
-            // Cleanup temporary file when screen is disposed or URI changes
-            initialImageUri?.path?.let { path ->
-                val file = File(path)
-                if (file.exists()) {
-                    file.delete()
-                    Log.d("AddFaceScreen", "Temporary cropped face file deleted: $path")
-                }
-            }
-            loadedFaceBitmap?.recycle()
-            loadedFaceBitmap = null
+            viewModel.resetState()
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { innerPadding ->
-        Box(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .padding(innerPadding) // Terapkan padding dari Scaffold
-        ){
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Top Bar
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clickable {
-                                onBack()
-                            }
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = "Tambah Wajah",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    "Tambah Wajah",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(25.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(280.dp)
+                    .fillMaxSize()
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+
+
+                val viewModelLiveDetectionResult by viewModel.liveDetectionResult.collectAsState()
+                viewModelLiveDetectionResult?.let {
+                    FaceOverlay(
+                        modifier = Modifier.fillMaxSize(),
+                        detectionResult = it,
+                        imageWidth = imageWidth,
+                        imageHeight = imageHeight,
+                        isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(50.dp))
 
-                Box(
-                    modifier = Modifier
-                        .width(250.dp)
-                        .aspectRatio(1f)
-                        .background(Color.LightGray)
-                        .align(alignment = Alignment.CenterHorizontally),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isLoadingBitmap) {
-                        CircularProgressIndicator()
-                    } else if (loadedFaceBitmap != null) {
-                        Image(
-                            bitmap = loadedFaceBitmap!!.asImageBitmap(),
-                            contentDescription = "Cropped Face",
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Wajah",
-                            tint = Color.DarkGray,
-                            modifier = Modifier.size(70.dp)
-                        )
+            OutlinedTextField(
+                value = userNameInput,
+                onValueChange = { userNameInput = it },
+                label = { Text("Nama") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = userEmailInput,
+                onValueChange = { userEmailInput = it },
+                label = { Text("Email") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = userPhoneInput,
+                onValueChange = { userPhoneInput = it },
+                label = { Text("No Telepon (08)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            when (recordingState) {
+                RecordingState.IDLE -> {
+                    OutlinedButton(
+                        onClick = {
+                            if (userNameInput.isNotBlank() && userEmailInput.isNotBlank() && userPhoneInput.isNotBlank()) {
+                                viewModel.startRecording(userNameInput, userEmailInput, userPhoneInput)
+                            } else {
+                                coroutineScope.launch {
+                                    if (snackbarHostState.currentSnackbarData == null) {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Harap isi semua kolom!",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        enabled = userNameInput.isNotBlank() && userEmailInput.isNotBlank() && userPhoneInput.isNotBlank()
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Mulai Rekam Wajah")
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Foto Ulang Button
-                TextButton(
-                    onClick = {
-                        onRetakePhoto()
-                    },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text("Foto Ulang")
+                RecordingState.RECORDING -> {
+                    LinearProgressIndicator(
+                        progress = recordingProgress,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Merekam... ${(recordingProgress * 100).toInt()}%")
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Input Nama
-                OutlinedTextField(
-                    value = viewModel.name.value,
-                    onValueChange = { viewModel.name.value = it },
-                    label = { Text("Nama") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Input Email
-                OutlinedTextField(
-                    value = viewModel.email.value,
-                    onValueChange = { viewModel.email.value = it },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Simpan Button
-                Button(
-                    onClick = {
-                        viewModel.saveFaceData(
-                            faceBitmap = loadedFaceBitmap,
-                            onSuccess = {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Wajah berhasil disimpan")
-                                }
-                                onSave()
-                            },
-                            onError = { message ->
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Error: $message")
-                                }
-                            }
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Text("Simpan Wajah")
+                RecordingState.PROCESSING -> {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Memproses wajah...")
                 }
+
+                RecordingState.DONE -> {
+                    Text("Wajah berhasil ditambahkan!", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(onClick = { navController.popBackStack() }) {
+                        Text("Selesai")
+                    }
+                }
+            }
+
+            message?.let {
+                Text(it, modifier = Modifier.padding(top = 12.dp))
             }
         }
     }
