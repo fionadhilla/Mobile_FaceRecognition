@@ -4,5 +4,5 @@ data class Admin(
     val id: String,
     val name: String,
     val email: String,
-    val role: String = "admin, superadmin"
+    val role: String
 )
