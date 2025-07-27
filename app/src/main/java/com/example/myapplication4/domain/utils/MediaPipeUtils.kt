@@ -74,4 +74,5 @@ object MediaPipeUtils {
         }
         return Bitmap.createScaledBitmap(this, newWidth, newHeight, true)
     }
+
 }

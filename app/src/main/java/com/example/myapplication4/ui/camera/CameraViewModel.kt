@@ -105,6 +105,7 @@ class CameraViewModel @Inject constructor(
         lastProcessedBitmap?.recycle()
         lastProcessedBitmap = bitmap.config?.let { bitmap.copy(it, true) }
         lastBitmapRotationDegrees = rotationDegrees
+        Log.d("CameraViewModel", "processFrame: Received bitmap Dims: ${bitmap.width}x${bitmap.height}, Rotation: $rotationDegrees. Passing to faceDetector.")
         faceDetector?.detect(bitmap)
     }
 

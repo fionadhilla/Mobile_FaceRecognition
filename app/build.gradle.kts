@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     implementation("androidx.startup:startup-runtime:1.2.0")
     implementation(libs.litert.support.api)
+    implementation(libs.litert.metadata)
+    implementation(libs.litert)
 
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"

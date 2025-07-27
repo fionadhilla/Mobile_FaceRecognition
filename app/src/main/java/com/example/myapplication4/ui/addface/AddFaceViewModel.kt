@@ -55,15 +55,22 @@ class AddFaceViewModel @Inject constructor(
     private var recordingJob: Job? = null
     private var lastFrameCaptureTime: Long = 0L
 
+    private val _countdown = MutableStateFlow(5)
+    val countdown: StateFlow<Int> = _countdown
+
     companion object {
-        private const val RECORD_DURATION_MILLIS = 5000L // 5 detik
-        private const val FRAME_CAPTURE_INTERVAL_MILLIS = 500L // Ambil frame tiap 500ms
-        private const val TARGET_FACE_SIZE = 160 // Ukuran target untuk FaceNet
-        private const val FACE_EXPANSION_FACTOR = 0.15f // Ekspansi bounding box saat crop
+        private const val RECORD_DURATION_MILLIS = 5000L
+        private const val FRAME_CAPTURE_INTERVAL_MILLIS = 500L
+        private const val TARGET_FACE_SIZE = 160
+        private const val FACE_EXPANSION_FACTOR = 0.15f
+        private const val TAG = "AddFaceViewModel"
     }
 
     fun startRecording(userName: String, userEmail: String, userPhone: String) {
-        if (_recordingState.value != RecordingState.IDLE) return
+        if (_recordingState.value != RecordingState.IDLE) {
+            Log.w(TAG, "Already recording or processing. Ignoring startRecording call.")
+            return
+        }
 
         name.value = userName
         email.value = userEmail
@@ -71,19 +78,31 @@ class AddFaceViewModel @Inject constructor(
 
         _recordingState.value = RecordingState.RECORDING
         _recordingProgress.value = 0f
+        _countdown.value = (RECORD_DURATION_MILLIS / 1000).toInt()
         capturedFrames.clear()
         _message.value = "Merekam wajah, mohon tetap di tengah..."
         lastFrameCaptureTime = System.currentTimeMillis()
+        Log.d(TAG, "Recording started for ${RECORD_DURATION_MILLIS / 1000} seconds.")
+
 
         recordingJob = viewModelScope.launch(Dispatchers.Default) {
             val startTime = System.currentTimeMillis()
             while (System.currentTimeMillis() - startTime < RECORD_DURATION_MILLIS) {
                 _recordingProgress.value = ((System.currentTimeMillis() - startTime).toFloat() / RECORD_DURATION_MILLIS)
-                delay(100) // Update progress secara berkala
+                delay(100)
             }
+            Log.d(TAG, "Recording finished. Captured ${capturedFrames.size} frames.")
             _recordingState.value = RecordingState.PROCESSING
             _message.value = "Memproses frame dan membuat embedding..."
             processBufferedFrames()
+        }
+
+        viewModelScope.launch {
+            val totalSeconds = (RECORD_DURATION_MILLIS / 1000).toInt()
+            for (second in totalSeconds downTo 0) {
+                _countdown.value = second
+                delay(1000L)
+            }
         }
     }
 
@@ -100,9 +119,9 @@ class AddFaceViewModel @Inject constructor(
                 try {
                     val bitmap = imageProxy.toBitmap()
                     capturedFrames.add(bitmap)
-                    Log.d("AddFaceViewModel", "Frame captured. Total: ${capturedFrames.size}")
+                    Log.d(TAG, "Frame captured and added to buffer. Buffer size: ${capturedFrames.size}. Bitmap Dims: ${bitmap.width}x${bitmap.height}")
                 } catch (e: Exception) {
-                    Log.e("AddFaceViewModel", "Error capturing frame: ${e.message}", e)
+                    Log.e(TAG, "Error capturing frame to buffer: ${e.message}", e)
                 } finally {
                     imageProxy.close()
                 }
@@ -116,20 +135,37 @@ class AddFaceViewModel @Inject constructor(
         if (capturedFrames.isEmpty()) {
             _message.value = "Tidak ada frame yang diambil. Coba lagi."
             _recordingState.value = RecordingState.IDLE
+            Log.w(TAG, "No frames captured for processing.")
             return
         }
 
         val allEmbeddings = mutableListOf<FloatArray>()
         var facesDetected = 0
+        var processedCount = 0
 
         withContext(Dispatchers.Default) {
+            val totalFrames = capturedFrames.size
             for ((index, bitmap) in capturedFrames.withIndex()) {
-                _message.value = "Memproses frame ${index + 1}/${capturedFrames.size}..."
-                val detectionResult: FaceDetectorResult? = faceDetector.detect(bitmap)
+                _message.value = "Memproses frame ${index + 1}/${totalFrames}..."
+                Log.d(TAG, "Processing frame ${index + 1}/${totalFrames}. Original Bitmap Dims: ${bitmap.width}x${bitmap.height}")
+
+                val detectionResult: FaceDetectorResult? = try {
+                    faceDetector.detect(bitmap)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error during face detection for frame ${index + 1}: ${e.message}", e)
+                    null
+                }
+
+                if (detectionResult == null) {
+                    Log.w(TAG, "No detection result for frame ${index + 1}.")
+                }
 
                 detectionResult?.detections()?.firstOrNull()?.let { detection ->
                     facesDetected++
+                    Log.d(TAG, "Face detected in frame ${index + 1}.")
                     val box = detection.boundingBox()
+                    Log.d(TAG, "Original Bounding Box for frame ${index + 1}: ${box.left}, ${box.top}, ${box.right}, ${box.bottom}")
+
 
                     val expandedWidth = box.width() * FACE_EXPANSION_FACTOR
                     val expandedHeight = box.height() * FACE_EXPANSION_FACTOR
@@ -147,57 +183,119 @@ class AddFaceViewModel @Inject constructor(
                     val actualCropWidth = cropRight - cropLeft
                     val actualCropHeight = cropBottom - cropTop
 
-                    if (actualCropWidth > 0 && actualCropHeight > 0) {
-                        val croppedFace = bitmap.cropBitmap(
-                            RectF(
-                                cropLeft.toFloat(), cropTop.toFloat(),
-                                cropRight.toFloat(), cropBottom.toFloat()
-                            )
-                        )
-                        val resizedFace = croppedFace.resizeBitmap(TARGET_FACE_SIZE, TARGET_FACE_SIZE)
+                    Log.d(TAG, "Expanded/Coerced Crop Box for frame ${index + 1}: left=$cropLeft, top=$cropTop, width=$actualCropWidth, height=$actualCropHeight")
 
-                        val embedding = faceEmbedder.getEmbeddings(resizedFace)
+                    if (actualCropWidth > 0 && actualCropHeight > 0) {
+                        val croppedFace = try {
+                            bitmap.cropBitmap(RectF(cropLeft.toFloat(), cropTop.toFloat(), cropRight.toFloat(), cropBottom.toFloat()))
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error cropping bitmap for frame ${index + 1}: ${e.message}", e)
+                            null
+                        }
+
+                        if (croppedFace == null || croppedFace.isRecycled) {
+                            Log.e(TAG, "Cropped bitmap is null or recycled for frame ${index + 1}.")
+                            croppedFace?.recycle()
+                            return@let // Skip this frame
+                        }
+                        Log.d(TAG, "Cropped Bitmap Dims for frame ${index + 1}: ${croppedFace.width}x${croppedFace.height}")
+
+                        val resizedFace = try {
+                            croppedFace.resizeBitmap(TARGET_FACE_SIZE, TARGET_FACE_SIZE)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error resizing bitmap for frame ${index + 1}: ${e.message}", e)
+                            null
+                        } finally {
+                            croppedFace.recycle() // Recycle cropped bitmap immediately
+                        }
+
+                        if (resizedFace == null || resizedFace.isRecycled) {
+                            Log.e(TAG, "Resized bitmap is null or recycled for frame ${index + 1}.")
+                            resizedFace?.recycle()
+                            return@let // Skip this frame
+                        }
+                        Log.d(TAG, "Resized Bitmap Dims for frame ${index + 1}: ${resizedFace.width}x${resizedFace.height}")
+
+                        // HAPUS: Normalisasi manual tidak digunakan lagi sesuai instruksi Tuan
+                        // val normalizedFace = try {
+                        //     resizedFace.normalizeBitmap()
+                        // } catch (e: Exception) {
+                        //     Log.e(TAG, "Error normalizing bitmap for frame ${index + 1}: ${e.message}", e)
+                        //     null
+                        // } finally {
+                        //     resizedFace.recycle()
+                        // }
+                        //
+                        // if (normalizedFace == null || normalizedFace.isRecycled) {
+                        //     Log.e(TAG, "Normalized bitmap is null or recycled for frame ${index + 1}.")
+                        //     normalizedFace?.recycle()
+                        //     return@let
+                        // }
+                        // Log.d(TAG, "Normalized Bitmap Dims for frame ${index + 1}: ${normalizedFace.width}x${normalizedFace.height}")
+
+                        val embedding = try {
+                            // Menggunakan resizedFace langsung karena normalizeBitmap() dihapus
+                            faceEmbedder.getEmbeddings(resizedFace)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error getting embeddings for frame ${index + 1}: ${e.message}", e)
+                            null
+                        } finally {
+                            // Recycle resizedFace setelah digunakan untuk embedding
+                            resizedFace.recycle()
+                        }
+
+
                         if (embedding != null) {
                             allEmbeddings.add(embedding)
+                            Log.d(TAG, "Embedding successfully generated for frame ${index + 1}. Embedding size: ${embedding.size}")
+                        } else {
+                            Log.w(TAG, "Embedding is null for frame ${index + 1}.")
                         }
-                        croppedFace.recycle() // Recycle cropped bitmap
-                        resizedFace.recycle() // Recycle resized bitmap
+                        processedCount++
+                    } else {
+                        Log.w(TAG, "Actual cropped width or height is 0 or less for frame ${index + 1}. Skipping frame.")
                     }
                 }
-                bitmap.recycle() // Buang bitmap setelah diproses
+                bitmap.recycle() // Recycle original captured bitmap after all processing
             }
             capturedFrames.clear() // Bersihkan buffer
+            Log.d(TAG, "Finished processing all frames. Total faces detected: $facesDetected. Total frames processed for embedding: $processedCount.")
         }
 
         if (allEmbeddings.isNotEmpty()) {
             val averagedEmbedding = averageEmbeddings(allEmbeddings)
+            Log.d(TAG, "Averaged embedding calculated. Size: ${averagedEmbedding.size}")
             val user = User(
                 name = name.value,
                 email = email.value,
                 phone = phone.value,
                 embeddings = averagedEmbedding
             )
+            Log.d(TAG, "Attempting to register user with averaged embedding.")
 
             when (val result = registerUserWithFaceUseCase(user.name, user.email, user.phone, user.embeddings)) {
                 is ApiResult.Success -> {
                     if (result.data) {
                         _message.value = "Wajah berhasil disimpan!"
                         _recordingState.value = RecordingState.DONE
+                        Log.i(TAG, "User registration successful.")
                     } else {
                         _message.value = "Gagal menyimpan data wajah di server."
                         _recordingState.value = RecordingState.IDLE
+                        Log.e(TAG, "User registration failed on server side (returned false).")
                     }
                 }
                 is ApiResult.Error -> {
                     _message.value = "Error: ${result.message}"
-                    Log.e("AddFace", "Error saving face data: ${result.message}", result.exception)
+                    Log.e(TAG, "Error during user registration API call: ${result.message}", result.exception)
                     _recordingState.value = RecordingState.IDLE
                 }
-                ApiResult.Loading -> { } // Should not happen here
+                ApiResult.Loading -> { }
             }
         } else {
             _message.value = "Tidak ada wajah yang terdeteksi di frame yang diambil. Terdeteksi ${facesDetected} wajah. Coba lagi."
             _recordingState.value = RecordingState.IDLE
+            Log.w(TAG, "No valid embeddings generated from captured frames.")
         }
     }
 
@@ -225,6 +323,8 @@ class AddFaceViewModel @Inject constructor(
         name.value = ""
         email.value = ""
         phone.value = ""
+        _countdown.value = 5
+        Log.d(TAG, "ViewModel state reset.")
     }
 
     override fun onCleared() {
@@ -234,6 +334,7 @@ class AddFaceViewModel @Inject constructor(
         capturedFrames.clear()
         faceDetector.close()
         faceEmbedder.close()
+        Log.d(TAG, "ViewModel cleared. Resources closed.")
     }
 }
 
