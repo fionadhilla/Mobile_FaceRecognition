@@ -23,7 +23,7 @@ class AddFaceDetector @Inject constructor(context: Context) {
 
             val options = FaceDetector.FaceDetectorOptions.builder()
                 .setBaseOptions(baseOptions)
-                .setMinDetectionConfidence(0.5f)
+                .setMinDetectionConfidence(0.4f)
                 .setRunningMode(RunningMode.IMAGE)
                 .build()
             faceDetector = FaceDetector.createFromOptions(context, options)

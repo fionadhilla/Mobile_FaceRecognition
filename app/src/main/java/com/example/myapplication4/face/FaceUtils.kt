@@ -39,5 +39,5 @@ object FaceUtils {
         return sqrt(sumOfSquares)
     }
 
-    const val RECOGNITION_THRESHOLD = 0.9f
+    const val RECOGNITION_THRESHOLD = 0.6f
 }

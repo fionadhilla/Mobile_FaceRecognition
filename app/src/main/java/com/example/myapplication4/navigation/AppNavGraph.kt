@@ -24,8 +24,6 @@ fun AppNavGraph(
     loginStateViewModel: LoginStateViewModel,
     startDestination: String
 ) {
-    // Dapatkan ViewModelStoreOwner dari Activity saat ini.
-    // Ini menjamin instance ViewModel akan stabil sepanjang siklus hidup Activity.
     val activityViewModelStoreOwner = checkNotNull(LocalContext.current as? androidx.lifecycle.ViewModelStoreOwner) {
         "AppNavGraph harus berada dalam konteks ViewModelStoreOwner (misalnya, Activity)."
     }
@@ -45,14 +43,7 @@ fun AppNavGraph(
             CameraScreen(
                 viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
                 onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToAddFace = { imageUri ->
-                    val route = if (imageUri != null) {
-                        "addFace?imageUri=${Uri.encode(imageUri.toString())}"
-                    } else {
-                        "addFace?imageUri=null"
-                    }
-                    navController.navigate(route)
-                },
+                onNavigateToAddFace = {},
                 onNavigateToProfile = { navController.navigate("profile") }
             )
         }
@@ -71,7 +62,9 @@ fun AppNavGraph(
             )
         }
         composable("editProfile") {
-            EditProfileScreen(navController = navController)
+            EditProfileScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
 
         composable("addFace") {

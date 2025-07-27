@@ -31,19 +31,16 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.myapplication4.face.MediaPipeFaceDetector
+// import com.example.myapplication4.face.MediaPipeFaceDetector // TIDAK PERLU DIIMPOR LAGI DI SINI
 import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
 import com.example.myapplication4.ui.components.FaceOverlay
 import java.util.concurrent.Executors
 import androidx.navigation.NavController
-import com.google.mediapipe.framework.image.BitmapImageBuilder
-import com.google.mediapipe.tasks.core.BaseOptions
-import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
-import android.os.SystemClock
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,30 +54,14 @@ fun AddFaceScreen(
     val recordingProgress by viewModel.recordingProgress.collectAsState()
     val message by viewModel.message.collectAsState()
     val lensFacing by viewModel.lensFacing.collectAsState()
+    val isFaceDetected by viewModel.isFaceDetected.collectAsState()
 
     var liveDetectionResult by remember { mutableStateOf<FaceDetectorResult?>(null) }
     val previewView = remember { PreviewView(context) }
 
-    val liveFaceDetector = remember {
-        try {
-            val baseOptions = BaseOptions.builder()
-                .setModelAssetPath("blaze_face_short_range.tflite")
-                .build()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-            val options = com.google.mediapipe.tasks.vision.facedetector.FaceDetector.FaceDetectorOptions.builder()
-                .setBaseOptions(baseOptions)
-                .setMinDetectionConfidence(0.5f)
-                .setRunningMode(RunningMode.LIVE_STREAM)
-                .setResultListener { result, _ -> liveDetectionResult = result }
-                .setErrorListener { e -> Log.e("FaceDetector", "Error: ${e.message}") }
-                .build()
-
-            com.google.mediapipe.tasks.vision.facedetector.FaceDetector.createFromOptions(context, options)
-        } catch (e: Exception) {
-            Log.e("AddFaceScreen", "Detector Init Failed: ${e.message}")
-            null
-        }
-    }
+    val coroutineScope = rememberCoroutineScope()
 
     var imageWidth by remember { mutableStateOf(1) }
     var imageHeight by remember { mutableStateOf(1) }
@@ -88,6 +69,7 @@ fun AddFaceScreen(
     var userNameInput by remember { mutableStateOf(viewModel.name.value) }
     var userEmailInput by remember { mutableStateOf(viewModel.email.value) }
     var userPhoneInput by remember { mutableStateOf(viewModel.phone.value) }
+
 
     LaunchedEffect(Unit) {
         val cameraProvider = ProcessCameraProvider.getInstance(context).get()
@@ -110,7 +92,7 @@ fun AddFaceScreen(
                         val bitmap = imageProxy.toBitmap()
                         imageWidth = bitmap.width
                         imageHeight = bitmap.height
-                        liveFaceDetector?.detectAsync(BitmapImageBuilder(bitmap).build(), SystemClock.uptimeMillis())
+                        viewModel.processLiveFrame(bitmap, imageProxy.imageInfo.rotationDegrees)
 
                         if (recordingState == RecordingState.RECORDING) {
                             viewModel.processFrameForRecording(imageProxy)
@@ -132,135 +114,156 @@ fun AddFaceScreen(
         }
     }
 
+    LaunchedEffect(isFaceDetected) {
+        if (isFaceDetected) { // Perubahan: langsung pakai isFaceDetected dari ViewModel
+            snackbarHostState.showSnackbar(
+                message = "Wajah Terdeteksi!",
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
-            liveFaceDetector?.close()
             viewModel.resetState()
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .padding(horizontal = 24.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // AppBar Mini dengan icon back dan judul tengah
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                "Tambah Wajah",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-            Spacer(modifier = Modifier.weight(1f)) // untuk center title
-        }
-
-        Spacer(modifier = Modifier.height(25.dp))
-
-        // Kamera View kotak
-        Box(
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .size(280.dp)
                 .fillMaxSize()
-                .background(Color.LightGray),
-            contentAlignment = Alignment.Center
+                .background(Color.White)
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
-
-            liveDetectionResult?.let {
-                FaceOverlay(
-                    modifier = Modifier.fillMaxSize(),
-                    detectionResult = it,
-                    imageWidth = imageWidth,
-                    imageHeight = imageHeight,
-                    isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    "Tambah Wajah",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.align(Alignment.CenterVertically)
                 )
+                Spacer(modifier = Modifier.weight(1f))
             }
-        }
 
-        Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(25.dp))
 
-        // Input Fields
-        OutlinedTextField(
-            value = userNameInput,
-            onValueChange = { userNameInput = it },
-            label = { Text("Nama") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(280.dp)
+                    .fillMaxSize()
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
-        OutlinedTextField(
-            value = userEmailInput,
-            onValueChange = { userEmailInput = it },
-            label = { Text("Email") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = userPhoneInput,
-            onValueChange = { userPhoneInput = it },
-            label = { Text("No Telepon (08)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        when (recordingState) {
-            RecordingState.IDLE -> {
-                OutlinedButton(
-                    onClick = {
-                        if (userNameInput.isNotBlank() && userEmailInput.isNotBlank() && userPhoneInput.isNotBlank()) {
-                            viewModel.startRecording(userNameInput, userEmailInput, userPhoneInput)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    enabled = userNameInput.isNotBlank() && userEmailInput.isNotBlank() && userPhoneInput.isNotBlank()
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Mulai Rekam Wajah")
+                val viewModelLiveDetectionResult by viewModel.liveDetectionResult.collectAsState()
+                viewModelLiveDetectionResult?.let {
+                    FaceOverlay(
+                        modifier = Modifier.fillMaxSize(),
+                        detectionResult = it,
+                        imageWidth = imageWidth,
+                        imageHeight = imageHeight,
+                        isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
+                    )
                 }
             }
 
-            RecordingState.RECORDING -> {
-                LinearProgressIndicator(
-                    progress = recordingProgress,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Merekam... ${(recordingProgress * 100).toInt()}%")
-            }
+            Spacer(modifier = Modifier.height(50.dp))
 
-            RecordingState.PROCESSING -> {
-                CircularProgressIndicator()
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Memproses wajah...")
-            }
+            OutlinedTextField(
+                value = userNameInput,
+                onValueChange = { userNameInput = it },
+                label = { Text("Nama") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            RecordingState.DONE -> {
-                Text("Wajah berhasil ditambahkan!", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = { navController.popBackStack() }) {
-                    Text("Selesai")
+            OutlinedTextField(
+                value = userEmailInput,
+                onValueChange = { userEmailInput = it },
+                label = { Text("Email") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = userPhoneInput,
+                onValueChange = { userPhoneInput = it },
+                label = { Text("No Telepon (08)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            when (recordingState) {
+                RecordingState.IDLE -> {
+                    OutlinedButton(
+                        onClick = {
+                            if (userNameInput.isNotBlank() && userEmailInput.isNotBlank() && userPhoneInput.isNotBlank()) {
+                                viewModel.startRecording(userNameInput, userEmailInput, userPhoneInput)
+                            } else {
+                                coroutineScope.launch {
+                                    if (snackbarHostState.currentSnackbarData == null) {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Harap isi semua kolom!",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        enabled = userNameInput.isNotBlank() && userEmailInput.isNotBlank() && userPhoneInput.isNotBlank()
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Mulai Rekam Wajah")
+                    }
+                }
+
+                RecordingState.RECORDING -> {
+                    LinearProgressIndicator(
+                        progress = recordingProgress,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Merekam... ${(recordingProgress * 100).toInt()}%")
+                }
+
+                RecordingState.PROCESSING -> {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Memproses wajah...")
+                }
+
+                RecordingState.DONE -> {
+                    Text("Wajah berhasil ditambahkan!", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(onClick = { navController.popBackStack() }) {
+                        Text("Selesai")
+                    }
                 }
             }
-        }
 
-        message?.let {
-            Text(it, modifier = Modifier.padding(top = 12.dp))
+            message?.let {
+                Text(it, modifier = Modifier.padding(top = 12.dp))
+            }
         }
     }
 }

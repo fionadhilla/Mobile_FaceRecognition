@@ -26,6 +26,7 @@ import com.example.myapplication4.data.repository.FaceRepository
 import com.example.myapplication4.data.repository.FaceRepositoryImpl
 import com.example.myapplication4.domain.utils.NetworkUtils
 import com.example.myapplication4.face.AddFaceDetector
+import com.example.myapplication4.ui.login.LoginStateViewModel
 
 import dagger.Module
 import dagger.Provides
@@ -40,8 +41,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLoginRepository(): LoginRepository {
-        return LoginRepositoryImpl()
+    fun provideLoginRepository(WebSocketClient: WebSocketClient): LoginRepository {
+        return LoginRepositoryImpl(WebSocketClient)
     }
 
     @Provides
@@ -52,12 +53,20 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideLoginStateViewModel(): LoginStateViewModel {
+        return LoginStateViewModel()
+    }
+
+    @Provides
+    @Singleton
     fun provideHistoryRepository(): HistoryRepository = HistoryRepositoryImpl()
 
     @Provides
     @Singleton
-    fun provideUserProfileRepository(): UserProfileRepository {
-        return UserProfileRepositoryImpl()
+    fun provideUserProfileRepository(
+        webSocketAuthService: WebSocketClient
+    ): UserProfileRepository {
+        return UserProfileRepositoryImpl(webSocketAuthService)
     }
 
     @Provides
