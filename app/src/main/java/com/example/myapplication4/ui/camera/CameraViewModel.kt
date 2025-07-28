@@ -23,9 +23,18 @@ import android.net.Uri
 import android.graphics.Matrix
 import javax.inject.Inject
 
+import com.example.myapplication4.face.FaceEmbedder
+import com.example.myapplication4.domain.usecase.VerifyFaceUseCase
+import com.example.myapplication4.data.model.FaceVerificationResult
+import com.example.myapplication4.data.api.ApiResult
+import com.example.myapplication4.domain.usecase.SyncOfflineFacesUseCase
+
 @HiltViewModel
 class CameraViewModel @Inject constructor(
-    application: Application
+    application: Application,
+    private val faceEmbedder: FaceEmbedder,
+    private val verifyFaceUseCase: VerifyFaceUseCase,
+    private val syncOfflineFacesUseCase: SyncOfflineFacesUseCase
 ) : AndroidViewModel(application) {
 
     private val _lensFacing = MutableStateFlow(CameraSelector.LENS_FACING_FRONT)
@@ -40,14 +49,18 @@ class CameraViewModel @Inject constructor(
     private val _croppedFaceImageUri = MutableStateFlow<Uri?>(null)
     val croppedFaceImageUri: StateFlow<Uri?> = _croppedFaceImageUri
 
+    private val _verificationResult = MutableStateFlow<FaceVerificationResult?>(null)
+    val verificationResult: StateFlow<FaceVerificationResult?> = _verificationResult
+
     private var faceDetector: MediaPipeFaceDetector? = null
 
     private var lastProcessedBitmap: Bitmap? = null
     private var lastBitmapRotationDegrees: Int = 0
-    private val cropExpansionFactor = 0.2f
+    private val cropExpansionFactor = 0.9f
 
     init {
         initFaceDetector()
+        startPeriodicSync() // Mulai sinkronisasi berkala
     }
 
     private fun initFaceDetector() {
@@ -70,10 +83,13 @@ class CameraViewModel @Inject constructor(
             _isFaceDetected.value = true
             viewModelScope.launch {
                 delay(1500)
-                _isFaceDetected.value = false
+                if (_isFaceDetected.value) {
+                    verifyDetectedFace()
+                }
             }
         } else if (!detected && _isFaceDetected.value) {
             _isFaceDetected.value = false
+            _verificationResult.value = null
         }
     }
 
@@ -89,24 +105,20 @@ class CameraViewModel @Inject constructor(
         lastProcessedBitmap?.recycle()
         lastProcessedBitmap = bitmap.config?.let { bitmap.copy(it, true) }
         lastBitmapRotationDegrees = rotationDegrees
+        Log.d("CameraViewModel", "processFrame: Received bitmap Dims: ${bitmap.width}x${bitmap.height}, Rotation: $rotationDegrees. Passing to faceDetector.")
         faceDetector?.detect(bitmap)
     }
 
-    fun cropDetectedFace() {
+    fun verifyDetectedFace() {
         viewModelScope.launch(Dispatchers.Default) {
             val currentBitmap = lastProcessedBitmap
             val currentDetectionResult = _detectionResult.value
             val currentRotationDegrees = lastBitmapRotationDegrees
             val isFrontCamera = (_lensFacing.value == CameraSelector.LENS_FACING_FRONT)
 
-            Log.d("CameraViewModel", "Attempting crop. lastProcessedBitmap is null: ${currentBitmap == null}, Rotation: $currentRotationDegrees")
-            Log.d("CameraViewModel", "Detection result is null: ${currentDetectionResult == null}. Detections empty: ${currentDetectionResult?.detections()?.isEmpty()}")
-
-
             if (currentBitmap != null && currentDetectionResult != null && currentDetectionResult.detections().isNotEmpty()) {
                 val firstFaceBox = currentDetectionResult.detections().first().boundingBox()
                 try {
-
                     val expandedFaceBox = ImageCropper.expandBoundingBox(
                         boundingBox = firstFaceBox,
                         imageWidth = currentBitmap.width,
@@ -115,7 +127,6 @@ class CameraViewModel @Inject constructor(
                     )
 
                     var croppedBitmap = ImageCropper.cropBitmap(currentBitmap, expandedFaceBox)
-                    Log.d("CameraViewModel", "Wajah berhasil di-crop: ${croppedBitmap.width}x${croppedBitmap.height}")
 
                     if (currentRotationDegrees != 0) {
                         val matrix = Matrix()
@@ -131,7 +142,6 @@ class CameraViewModel @Inject constructor(
                         )
                         croppedBitmap.recycle()
                         croppedBitmap = rotatedBitmap
-                        Log.d("CameraViewModel", "Wajah dirotasi ${currentRotationDegrees} derajat.")
                     }
 
                     if (isFrontCamera) {
@@ -148,7 +158,89 @@ class CameraViewModel @Inject constructor(
                         )
                         croppedBitmap.recycle()
                         croppedBitmap = flippedBitmap
-                        Log.d("CameraViewModel", "Wajah di-flip horizontal untuk kamera depan.")
+                    }
+
+                    val embeddings = faceEmbedder.getEmbeddings(croppedBitmap)
+                    croppedBitmap.recycle()
+
+                    if (embeddings != null) {
+                        when (val result = verifyFaceUseCase(embeddings)) {
+                            is ApiResult.Success -> {
+                                _verificationResult.value = result.data
+                                Log.d("CameraViewModel", "Verification result: ${result.data.isMatch}, Matched User: ${result.data.matchedUser?.name}, Distance: ${result.data.distance}")
+                            }
+                            is ApiResult.Error -> {
+                                Log.e("CameraViewModel", "Error during verification: ${result.message}", result.exception)
+                                _verificationResult.value = FaceVerificationResult(isMatch = false, matchedUser = null, distance = -1.0f)
+                            }
+                            ApiResult.Loading -> { }
+                        }
+                    } else {
+                        Log.e("CameraViewModel", "Gagal mendapatkan embeddings untuk verifikasi.")
+                        _verificationResult.value = FaceVerificationResult(isMatch = false, matchedUser = null, distance = -1.0f)
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("CameraViewModel", "Gagal memotong atau memverifikasi wajah: ${e.message}", e)
+                    _verificationResult.value = FaceVerificationResult(isMatch = false, matchedUser = null, distance = -1.0f)
+                }
+            } else {
+                Log.d("CameraViewModel", "Tidak ada bitmap atau hasil deteksi wajah yang tersedia untuk verifikasi.")
+                _verificationResult.value = FaceVerificationResult(isMatch = false, matchedUser = null, distance = -1.0f)
+            }
+        }
+    }
+
+
+    fun cropDetectedFace() {
+        viewModelScope.launch(Dispatchers.Default) {
+            val currentBitmap = lastProcessedBitmap
+            val currentDetectionResult = _detectionResult.value
+            val currentRotationDegrees = lastBitmapRotationDegrees
+            val isFrontCamera = (_lensFacing.value == CameraSelector.LENS_FACING_FRONT)
+
+            if (currentBitmap != null && currentDetectionResult != null && currentDetectionResult.detections().isNotEmpty()) {
+                val firstFaceBox = currentDetectionResult.detections().first().boundingBox()
+                try {
+                    val expandedFaceBox = ImageCropper.expandBoundingBox(
+                        boundingBox = firstFaceBox,
+                        imageWidth = currentBitmap.width,
+                        imageHeight = currentBitmap.height,
+                        expansionFactor = cropExpansionFactor
+                    )
+
+                    var croppedBitmap = ImageCropper.cropBitmap(currentBitmap, expandedFaceBox)
+
+                    if (currentRotationDegrees != 0) {
+                        val matrix = Matrix()
+                        matrix.postRotate(currentRotationDegrees.toFloat())
+                        val rotatedBitmap = Bitmap.createBitmap(
+                            croppedBitmap,
+                            0,
+                            0,
+                            croppedBitmap.width,
+                            croppedBitmap.height,
+                            matrix,
+                            true
+                        )
+                        croppedBitmap.recycle()
+                        croppedBitmap = rotatedBitmap
+                    }
+
+                    if (isFrontCamera) {
+                        val matrixFlip = Matrix()
+                        matrixFlip.postScale(-1f, 1f, croppedBitmap.width / 2f, croppedBitmap.height / 2f)
+                        val flippedBitmap = Bitmap.createBitmap(
+                            croppedBitmap,
+                            0,
+                            0,
+                            croppedBitmap.width,
+                            croppedBitmap.height,
+                            matrixFlip,
+                            true
+                        )
+                        croppedBitmap.recycle()
+                        croppedBitmap = flippedBitmap
                     }
 
 
@@ -161,8 +253,6 @@ class CameraViewModel @Inject constructor(
                     _croppedFaceImageUri.value = uri
                     croppedBitmap.recycle()
 
-                    Log.d("CameraViewModel", "Wajah berhasil disimpan ke URI: $uri")
-
                 } catch (e: Exception) {
                     Log.e("CameraViewModel", "Gagal menyimpan atau memotong wajah: ${e.message}", e)
                     _croppedFaceImageUri.value = null
@@ -170,6 +260,15 @@ class CameraViewModel @Inject constructor(
             } else {
                 Log.d("CameraViewModel", "Tidak ada bitmap atau hasil deteksi wajah yang tersedia untuk di-crop. isFaceDetected was ${isFaceDetected.value}")
                 _croppedFaceImageUri.value = null
+            }
+        }
+    }
+
+    private fun startPeriodicSync() {
+        viewModelScope.launch {
+            while (true) {
+                delay(30000L)
+                syncOfflineFacesUseCase()
             }
         }
     }

@@ -32,6 +32,11 @@ android {
             )
         }
     }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = libs.versions.kotlin.get()
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -45,10 +50,6 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
-
     packaging {
         resources {
             aaptOptions {
@@ -56,14 +57,31 @@ android {
             }
         }
     }
+
+    kapt {
+        includeCompileClasspath = false
+    }
 }
 
 dependencies {
-    implementation(libs.play.services.mlkit.face.detection)
+    implementation(libs.play.services.mlkit.face.detection) {
+        exclude(group = "org.tensorflow", module = "tensorflow-lite-api")
+        exclude(group = "com.google.android.gms", module = "play-services-tflite-java")
+    }
+
+    implementation(libs.androidx.media3.common.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.common)
+    implementation(libs.androidx.hilt.work)
+    implementation("androidx.startup:startup-runtime:1.2.0")
+//    implementation(libs.litert.support.api)
+//    implementation(libs.litert.metadata)
+//    implementation(libs.litert)
+
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"
     val camerax_version = "1.1.0-beta01"
-
+    implementation(platform("androidx.compose:compose-bom:2025.07.00"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -72,6 +90,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // UI
     // Navigation
@@ -107,9 +126,9 @@ dependencies {
     implementation("androidx.camera:camera-extensions:${camerax_version}")
 
     // OFFLINE STORAGE
-    implementation("androidx.room:room-runtime:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
+    implementation(libs.room.runtime)
+    kapt(libs.room.compiler)
+    implementation(libs.room.ktx)
 
     // WEBSOCKET OKHTTP
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
