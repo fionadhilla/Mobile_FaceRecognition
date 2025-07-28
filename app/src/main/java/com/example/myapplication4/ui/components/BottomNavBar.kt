@@ -34,9 +34,8 @@ fun BottomNavBar(
     onHistoryClick: () -> Unit,
     onAddClick: () -> Unit,
     onProfileClick: () -> Unit,
-    isMoreMenuExpanded: Boolean,
-    onToggleMoreMenu: () -> Unit,
-    onMoreOptionSelected: (String) -> Unit
+    onMoreClick: () -> Unit
+
 ) {
     Box(
         modifier = Modifier
@@ -113,8 +112,6 @@ fun BottomNavBarPreview() {
         onHistoryClick = {},
         onAddClick = {},
         onProfileClick = {},
-        isMoreMenuExpanded = false, // Set to true to see the expanded menu in preview
-        onToggleMoreMenu = {},
-        onMoreOptionSelected = {}
+        onMoreClick ={}
     )
 }

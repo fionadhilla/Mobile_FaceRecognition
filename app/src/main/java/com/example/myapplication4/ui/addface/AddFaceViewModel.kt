@@ -1,3 +1,4 @@
+// In app/src/main/java/com/example/myapplication4/ui/addface/AddFaceViewModel.kt
 package com.example.myapplication4.ui.addface
 
 import android.app.Application
@@ -19,7 +20,7 @@ import com.example.myapplication4.data.model.User
 import com.example.myapplication4.face.AddFaceDetector
 import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
 import com.example.myapplication4.domain.utils.MediaPipeUtils.resizeBitmap
-import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
+// import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult // Ini tidak lagi diperlukan secara langsung untuk liveDetectionResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,8 +59,9 @@ class AddFaceViewModel @Inject constructor(
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
 
-    private val _liveDetectionResult = MutableStateFlow<FaceDetectorResult?>(null)
-    val liveDetectionResult: StateFlow<FaceDetectorResult?> = _liveDetectionResult // Untuk FaceOverlay
+    // UBAH TIPE INI menjadi List<RectF>
+    private val _liveDetectionResult = MutableStateFlow<List<RectF>>(emptyList())
+    val liveDetectionResult: StateFlow<List<RectF>> = _liveDetectionResult // Untuk FaceOverlay
 
     private val capturedFrames = mutableListOf<Bitmap>()
     private var recordingJob: Job? = null
@@ -84,14 +86,16 @@ class AddFaceViewModel @Inject constructor(
         liveFaceDetector = MediaPipeFaceDetector(
             context = getApplication(),
             onResult = { result ->
-                _isFaceDetected.value = result.detections().isNotEmpty()
-                _liveDetectionResult.value = result // Update liveDetectionResult untuk FaceOverlay
+                // KONVERSI FaceDetectorResult ke List<RectF> di sini
+                val detectedBoxes = result.detections().map { it.boundingBox() }
+                _isFaceDetected.value = detectedBoxes.isNotEmpty()
+                _liveDetectionResult.value = detectedBoxes // Update liveDetectionResult dengan List<RectF>
                 Log.d(TAG, "Live face detected: ${_isFaceDetected.value}")
             },
             onError = { error ->
                 Log.e(TAG, "Live Face Detector error: ${error.message}")
                 _isFaceDetected.value = false
-                _liveDetectionResult.value = null
+                _liveDetectionResult.value = emptyList() // Set ke emptyList()
             }
         )
 
@@ -261,7 +265,7 @@ class AddFaceViewModel @Inject constructor(
                 _message.value = "Memproses frame ${index + 1}/${totalFrames}..."
                 Log.d(TAG, "Processing frame ${index + 1}/${totalFrames}. Original Bitmap Dims: ${bitmap.width}x${bitmap.height}")
 
-                val detectionResult: FaceDetectorResult? = try {
+                val detectionResult: com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult? = try {
                     addFaceDetector.detect(bitmap)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error during face detection for frame ${index + 1}: ${e.message}", e)

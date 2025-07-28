@@ -1,3 +1,4 @@
+// In app/src/main/java/com/example/myapplication4/navigation/AppNavGraph.kt
 package com.example.myapplication4.navigation
 
 import androidx.compose.runtime.*
@@ -14,6 +15,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.myapplication4.ui.camera_option.CameraOptionScreen
+import com.example.myapplication4.ui.facedetection.FaceDetectionCameraScreen // Pastikan ini sudah diimpor
+
 
 import android.net.Uri
 import androidx.compose.material3.Text
@@ -27,8 +30,6 @@ fun AppNavGraph(
     loginStateViewModel: LoginStateViewModel,
     startDestination: String
 ) {
-    // Dapatkan ViewModelStoreOwner dari Activity saat ini.
-    // Ini menjamin instance ViewModel akan stabil sepanjang siklus hidup Activity.
     val activityViewModelStoreOwner = checkNotNull(LocalContext.current as? androidx.lifecycle.ViewModelStoreOwner) {
         "AppNavGraph harus berada dalam konteks ViewModelStoreOwner (misalnya, Activity)."
     }
@@ -76,7 +77,7 @@ fun AppNavGraph(
         }
         composable("editProfile") {
             EditProfileScreen(
-                onBackClick = { navController.popBackStack() } // Panggil navController.popBackStack() saat onBackClick dipanggil
+                onBackClick = { navController.popBackStack() }
             )
         }
 
@@ -107,15 +108,24 @@ fun AppNavGraph(
         }
 
         composable("cameraOption") {
-            CameraOptionScreen(navController = navController)
+            CameraOptionScreen(
+
+                onNavigateToFaceDetection = { navController.navigate("faceDetection") },
+                onNavigateToObjectDetection = { navController.navigate("objectDetection") },
+                onNavigateToAnomalyDetection = { navController.navigate("anomalyDetection") }
+            )
         }
 
-        // Placeholder composables for detection types
         composable("objectDetection") {
             Text("Object Detection Screen (Not Implemented Yet)")
         }
         composable("faceDetection") {
-            Text("Face Detection Screen (Not Implemented Yet)")
+            FaceDetectionCameraScreen(
+                viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
         }
         composable("anomalyDetection") {
             Text("Anomaly Detection Screen (Not Implemented Yet)")

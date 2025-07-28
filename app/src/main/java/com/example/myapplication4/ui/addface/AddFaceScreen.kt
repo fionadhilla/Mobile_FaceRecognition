@@ -1,5 +1,7 @@
+// In app/src/main/java/com/example/myapplication4/ui/addface/AddFaceScreen.kt
 package com.example.myapplication4.ui.addface
 
+import android.net.Uri
 import android.util.Log
 import android.util.Size
 import androidx.compose.foundation.background
@@ -31,21 +33,21 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.viewinterop.AndroidView
-// import com.example.myapplication4.face.MediaPipeFaceDetector // TIDAK PERLU DIIMPOR LAGI DI SINI
 import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
 import com.example.myapplication4.ui.components.FaceOverlay
 import java.util.concurrent.Executors
-import androidx.navigation.NavController
-import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-
+import android.graphics.RectF // Import RectF
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFaceScreen(
-    navController: NavController,
+    initialImageUri: Uri?,
+    onBack: () -> Unit,
+    onRetakePhoto: () -> Unit,
+    onSave: (String, String) -> Unit,
     viewModel: AddFaceViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -56,7 +58,8 @@ fun AddFaceScreen(
     val lensFacing by viewModel.lensFacing.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
 
-    var liveDetectionResult by remember { mutableStateOf<FaceDetectorResult?>(null) }
+    // TIDAK PERLU lagi state ini karena ViewModel akan memberikan List<RectF>
+    // var liveDetectionResult by remember { mutableStateOf<FaceDetectorResult?>(null) }
     val previewView = remember { PreviewView(context) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -72,6 +75,10 @@ fun AddFaceScreen(
 
 
     LaunchedEffect(Unit) {
+        initialImageUri?.let {
+            Log.d("AddFaceScreen", "Initial image URI: $it")
+        }
+
         val cameraProvider = ProcessCameraProvider.getInstance(context).get()
         val preview = Preview.Builder().build().apply {
             setSurfaceProvider(previewView.surfaceProvider)
@@ -115,7 +122,7 @@ fun AddFaceScreen(
     }
 
     LaunchedEffect(isFaceDetected) {
-        if (isFaceDetected) { // Perubahan: langsung pakai isFaceDetected dari ViewModel
+        if (isFaceDetected) {
             snackbarHostState.showSnackbar(
                 message = "Wajah Terdeteksi!",
                 duration = SnackbarDuration.Short
@@ -144,7 +151,7 @@ fun AddFaceScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(onClick = onBack) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -167,12 +174,12 @@ fun AddFaceScreen(
             ) {
                 AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
-
+                // Panggil liveDetectionResult dari ViewModel, yang kini berupa List<RectF>
                 val viewModelLiveDetectionResult by viewModel.liveDetectionResult.collectAsState()
-                viewModelLiveDetectionResult?.let {
+                viewModelLiveDetectionResult.let { // Gunakan .let pada List<RectF>
                     FaceOverlay(
                         modifier = Modifier.fillMaxSize(),
-                        detectionResult = it,
+                        detectedFaces = it, // Gunakan detectedFaces sebagai parameter
                         imageWidth = imageWidth,
                         imageHeight = imageHeight,
                         isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
@@ -255,7 +262,9 @@ fun AddFaceScreen(
                 RecordingState.DONE -> {
                     Text("Wajah berhasil ditambahkan!", fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = { navController.popBackStack() }) {
+                    Button(onClick = {
+                        onSave(userNameInput, userEmailInput)
+                    }) {
                         Text("Selesai")
                     }
                 }

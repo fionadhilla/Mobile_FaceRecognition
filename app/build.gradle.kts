@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.hilt.common)
     implementation(libs.androidx.hilt.work)
     implementation("androidx.startup:startup-runtime:1.2.0")
+    implementation(libs.litert)
 //    implementation(libs.litert.support.api)
 //    implementation(libs.litert.metadata)
 //    implementation(libs.litert)
