@@ -11,9 +11,12 @@ import com.example.myapplication4.ui.profile.ProfileScreen
 import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.ui.edit_profile.EditProfileScreen
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.myapplication4.ui.camera_option.CameraOptionScreen
 
 import android.net.Uri
+import androidx.compose.material3.Text
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.compose.ui.platform.LocalContext
@@ -53,7 +56,8 @@ fun AppNavGraph(
                     }
                     navController.navigate(route)
                 },
-                onNavigateToProfile = { navController.navigate("profile") }
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
             )
         }
 
@@ -100,6 +104,21 @@ fun AppNavGraph(
                     navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
                 }
             )
+        }
+
+        composable("cameraOption") {
+            CameraOptionScreen(navController = navController)
+        }
+
+        // Placeholder composables for detection types
+        composable("objectDetection") {
+            Text("Object Detection Screen (Not Implemented Yet)")
+        }
+        composable("faceDetection") {
+            Text("Face Detection Screen (Not Implemented Yet)")
+        }
+        composable("anomalyDetection") {
+            Text("Anomaly Detection Screen (Not Implemented Yet)")
         }
     }
 }

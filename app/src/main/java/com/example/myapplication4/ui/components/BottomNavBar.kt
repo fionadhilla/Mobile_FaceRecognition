@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.tooling.preview.Preview // Import Preview
 
 @Composable
 fun BottomNavBar(
@@ -96,32 +97,24 @@ fun BottomNavBar(
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box {
-                    IconButton(onClick = onToggleMoreMenu) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = Color.Black)
-                    }
-                    DropdownMenu(
-                        expanded = isMoreMenuExpanded,
-                        onDismissRequest = onToggleMoreMenu,
-                        offset = DpOffset(x = (-95).dp, y = (-230).dp)
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Face Recognition") },
-                            onClick = { onMoreOptionSelected("face") }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Object Detection") },
-                            onClick = { onMoreOptionSelected("object") }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("More...") },
-                            onClick = { onMoreOptionSelected("more") }
-                        )
-                    }
+                IconButton(onClick = onMoreClick) {
+                    Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = Color.Black)
                 }
-
-                Text("More", fontSize = 12.sp)
+                Text("More", fontSize = 12.sp, color = Color.Black)
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun BottomNavBarPreview() {
+    BottomNavBar(
+        onHistoryClick = {},
+        onAddClick = {},
+        onProfileClick = {},
+        isMoreMenuExpanded = false, // Set to true to see the expanded menu in preview
+        onToggleMoreMenu = {},
+        onMoreOptionSelected = {}
+    )
 }

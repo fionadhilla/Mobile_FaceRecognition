@@ -55,6 +55,7 @@ fun CameraScreen(
     onNavigateToHistory: () -> Unit,
     onNavigateToAddFace: (Uri?) -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToMore: () -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -70,7 +71,6 @@ fun CameraScreen(
     var imageWidth by remember { mutableStateOf(1) }
     var imageHeight by remember { mutableStateOf(1) }
     val snackbarHostState = remember { SnackbarHostState() }
-    var isMoreMenuExpanded by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     val croppedFaceImageUri by viewModel.croppedFaceImageUri.collectAsState()
@@ -172,16 +172,7 @@ fun CameraScreen(
                     }
                 },
                 onProfileClick = onNavigateToProfile,
-                isMoreMenuExpanded = isMoreMenuExpanded,
-                onToggleMoreMenu = { isMoreMenuExpanded = !isMoreMenuExpanded },
-                onMoreOptionSelected = { selected ->
-                    isMoreMenuExpanded = false
-                    when (selected) {
-                        "face" -> {}
-                        "object" -> {}
-                        "more" -> {}
-                    }
-                }
+                onMoreClick = onNavigateToMore
             )
         },
         modifier = Modifier.background(color = Color.LightGray)
