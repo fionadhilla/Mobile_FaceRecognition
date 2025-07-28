@@ -1,40 +1,24 @@
+// MediaPipeUtils.kt
+
 package com.example.myapplication4.domain.utils
 
 import android.graphics.*
 import androidx.camera.core.ImageProxy
-import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
+import android.util.Log
+import androidx.camera.core.ExperimentalGetImage
 import java.io.ByteArrayOutputStream
 
 object MediaPipeUtils {
-    fun drawBoundingBoxes(bitmap: Bitmap, result: FaceDetectorResult): Bitmap {
-        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas = Canvas(mutableBitmap)
-        val paint = Paint().apply {
-            color = Color.BLUE
-            style = Paint.Style.STROKE
-            strokeWidth = 4f
+
+    @ExperimentalGetImage
+    fun ImageProxy.toBitmapWithoutConverter(): Bitmap? {
+        val image = this.image ?: run {
+            Log.e("MediaPipeUtils", "ImageProxy.image is null in toBitmap().")
+            this.close()
+            return null
         }
 
-        val expansionFactor = 0.15f
-
-        for (detection in result.detections()) {
-            val box = detection.boundingBox()
-
-            val expandedWidth = box.width() * expansionFactor
-            val expandedHeight = box.height() * expansionFactor
-
-            val left = box.left - expandedWidth / 2
-            val top = box.top - expandedHeight / 2
-            val width = box.width() + expandedWidth
-            val height = box.height() + expandedHeight
-
-            canvas.drawRect(left, top, left + width, top + height, paint)
-        }
-
-        return mutableBitmap
-    }
-
-    fun ImageProxy.toBitmap(): Bitmap {
+        val planes = image.planes
         val yBuffer = planes[0].buffer
         val uBuffer = planes[1].buffer
         val vBuffer = planes[2].buffer
@@ -49,11 +33,44 @@ object MediaPipeUtils {
         vBuffer.get(nv21, ySize, vSize)
         uBuffer.get(nv21, ySize + vSize, uSize)
 
-        val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
+        val yuvImage = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
         val out = ByteArrayOutputStream()
-        yuvImage.compressToJpeg(Rect(0, 0, width, height), 100, out)
+        val rect = Rect(0, 0, this.width, this.height)
+
+        yuvImage.compressToJpeg(rect, 100, out)
+
         val imageBytes = out.toByteArray()
-        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+
+        image.close() // Penting: Tutup image dari ImageProxy
+
+        Log.d("MediaPipeUtils", "toBitmap(): ImageProxy Dims: ${this.width}x${this.height}, Bitmap Dims: ${bitmap?.width}x${bitmap?.height}")
+        if (bitmap == null) {
+            Log.e("MediaPipeUtils", "toBitmap(): Failed to decode byte array into Bitmap.")
+        }
+        return bitmap
+    }
+
+    @ExperimentalGetImage
+    fun ImageProxy.toBitmap(yuvConverter: YuvToRgbConverter): Bitmap? {
+        val image = this.image ?: run {
+            Log.e("MediaPipeUtils", "ImageProxy.image is null for toBitmap.")
+            this.close()
+            return null
+        }
+
+        val outputBitmap = Bitmap.createBitmap(this.width, this.height, Bitmap.Config.ARGB_8888)
+
+        try {
+            yuvConverter.yuvToRgb(image, outputBitmap)
+            Log.d("MediaPipeUtils", "toBitmap (with converter): ImageProxy Dims: ${this.width}x${this.height}, Bitmap Dims: ${outputBitmap.width}x${outputBitmap.height}")
+            return outputBitmap
+        } catch (e: Exception) {
+            Log.e("MediaPipeUtils", "Error converting YUV to RGB using converter: ${e.message}", e)
+            return null
+        } finally {
+            image.close() // Penting: Tutup image dari ImageProxy
+        }
     }
 
     fun Bitmap.cropBitmap(rect: RectF): Bitmap {
@@ -63,16 +80,26 @@ object MediaPipeUtils {
         val cropHeight = rect.height().toInt().coerceIn(0, this.height - cropY)
 
         if (cropWidth <= 0 || cropHeight <= 0) {
+            Log.e("MediaPipeUtils", "Crop size invalid: width=$cropWidth, height=$cropHeight")
             return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.TRANSPARENT) }
         }
         return Bitmap.createBitmap(this, cropX, cropY, cropWidth, cropHeight)
     }
 
     fun Bitmap.resizeBitmap(newWidth: Int, newHeight: Int): Bitmap {
+        if (this.isRecycled) {
+            throw IllegalStateException("Cannot resize a recycled bitmap.")
+        }
+
         if (this.width == newWidth && this.height == newHeight) {
             return this
         }
-        return Bitmap.createScaledBitmap(this, newWidth, newHeight, true)
-    }
 
+        return try {
+            Bitmap.createScaledBitmap(this, newWidth, newHeight, true)
+        } catch (e: Exception) {
+            Log.e("BitmapResize", "Error resizing bitmap: ${e.message}", e)
+            throw e
+        }
+    }
 }

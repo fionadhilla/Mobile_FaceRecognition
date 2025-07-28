@@ -33,9 +33,7 @@ fun BottomNavBar(
     onHistoryClick: () -> Unit,
     onAddClick: () -> Unit,
     onProfileClick: () -> Unit,
-    isMoreMenuExpanded: Boolean,
-    onToggleMoreMenu: () -> Unit,
-    onMoreOptionSelected: (String) -> Unit
+    onMoreClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -96,31 +94,10 @@ fun BottomNavBar(
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box {
-                    IconButton(onClick = onToggleMoreMenu) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = Color.Black)
-                    }
-                    DropdownMenu(
-                        expanded = isMoreMenuExpanded,
-                        onDismissRequest = onToggleMoreMenu,
-                        offset = DpOffset(x = (-95).dp, y = (-230).dp)
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Face Recognition") },
-                            onClick = { onMoreOptionSelected("face") }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Object Detection") },
-                            onClick = { onMoreOptionSelected("object") }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("More...") },
-                            onClick = { onMoreOptionSelected("more") }
-                        )
-                    }
+                IconButton(onClick = onMoreClick) {
+                    Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = Color.Black)
                 }
-
-                Text("More", fontSize = 12.sp)
+                Text("More", fontSize = 12.sp, color = Color.Black)
             }
         }
     }

@@ -48,14 +48,19 @@ import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import android.net.Uri
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
+import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmapWithoutConverter
 import com.example.myapplication4.face.FaceUtils
 
+@OptIn(ExperimentalGetImage::class)
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel = hiltViewModel(),
     onNavigateToHistory: () -> Unit,
-    onNavigateToAddFace: (Uri?) -> Unit,
+    onNavigateToAddFace: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToMore: () -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -73,27 +78,7 @@ fun CameraScreen(
     var imageHeight by remember { mutableStateOf(1) }
     val snackbarHostState = remember { SnackbarHostState() }
     var isMoreMenuExpanded by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
 
-    val croppedFaceImageUri by viewModel.croppedFaceImageUri.collectAsState()
-    var isCroppingInProgress by remember { mutableStateOf(false) }
-
-    LaunchedEffect(croppedFaceImageUri) {
-        if (isCroppingInProgress) {
-            if (croppedFaceImageUri != null) {
-                onNavigateToAddFace(croppedFaceImageUri)
-            } else {
-                coroutineScope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = "Gagal memotong wajah. Pastikan wajah terlihat jelas.",
-                        duration = SnackbarDuration.Short
-                    )
-                }
-                onNavigateToAddFace(null)
-            }
-            isCroppingInProgress = false
-        }
-    }
 
     LaunchedEffect(isFaceDetected) {
         if (isFaceDetected) {
@@ -139,11 +124,13 @@ fun CameraScreen(
             .also { analysis ->
                 analysis.setAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
                     try {
-                        val bitmap = imageProxy.toBitmap()
+                        val bitmap = imageProxy.toBitmapWithoutConverter()
                         imageWidth = imageProxy.width
                         imageHeight = imageProxy.height
                         val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-                        viewModel.processFrame(bitmap, rotationDegrees)
+                        if (bitmap != null) {
+                            viewModel.processFrame(bitmap, rotationDegrees)
+                        }
                     } catch (e: Exception) {
                         Log.e("Analyzer", "Error converting image", e)
                     } finally {
@@ -171,32 +158,10 @@ fun CameraScreen(
             BottomNavBar(
                 onHistoryClick = onNavigateToHistory,
                 onAddClick = {
-                    if (!isCroppingInProgress) {
-                        if (isFaceDetected) {
-                            isCroppingInProgress = true
-                            viewModel.cropDetectedFace()
-                        } else {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "Tidak ada wajah terdeteksi untuk ditambahkan.",
-                                    duration = SnackbarDuration.Short
-                                )
-                            }
-                            onNavigateToAddFace(null)
-                        }
-                    }
+                    onNavigateToAddFace()
                 },
                 onProfileClick = onNavigateToProfile,
-                isMoreMenuExpanded = isMoreMenuExpanded,
-                onToggleMoreMenu = { isMoreMenuExpanded = !isMoreMenuExpanded },
-                onMoreOptionSelected = { selected ->
-                    isMoreMenuExpanded = false
-                    when (selected) {
-                        "face" -> {  }
-                        "object" -> {  }
-                        "more" -> {  }
-                    }
-                }
+                onMoreClick = onNavigateToMore
             )
         },
         modifier = Modifier.background(color = Color.LightGray)

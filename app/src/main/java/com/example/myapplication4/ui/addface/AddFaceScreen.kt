@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.setValue
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -42,7 +43,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
 fun AddFaceScreen(
     navController: NavController,
@@ -56,7 +57,6 @@ fun AddFaceScreen(
     val lensFacing by viewModel.lensFacing.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
 
-    var liveDetectionResult by remember { mutableStateOf<FaceDetectorResult?>(null) }
     val previewView = remember { PreviewView(context) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -86,23 +86,9 @@ fun AddFaceScreen(
             .setTargetResolution(Size(480, 640))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
-            .also {
-                it.setAnalyzer(executor) { imageProxy ->
-                    try {
-                        val bitmap = imageProxy.toBitmap()
-                        imageWidth = bitmap.width
-                        imageHeight = bitmap.height
-                        viewModel.processLiveFrame(bitmap, imageProxy.imageInfo.rotationDegrees)
-
-                        if (recordingState == RecordingState.RECORDING) {
-                            viewModel.processFrameForRecording(imageProxy)
-                        } else {
-                            imageProxy.close()
-                        }
-                    } catch (e: Exception) {
-                        Log.e("AddFaceScreen", "Analyzer error: ${e.message}")
-                        imageProxy.close()
-                    }
+            .also { analysis ->
+                analysis.setAnalyzer(executor) { imageProxy ->
+                    viewModel.processFrame(imageProxy)
                 }
             }
 
@@ -137,7 +123,7 @@ fun AddFaceScreen(
                 .fillMaxSize()
                 .background(Color.White)
                 .padding(paddingValues)
-                .padding(horizontal = 24.dp, vertical = 12.dp),
+                .padding(horizontal = 24.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(

@@ -3,7 +3,6 @@ package com.example.myapplication4.data.repository
 
 import android.util.Log
 import com.example.myapplication4.data.api.WebSocketClient
-import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.flow.first
 import org.json.JSONObject
@@ -12,8 +11,7 @@ import javax.inject.Singleton
 
 @Singleton
 class LoginRepositoryImpl @Inject constructor(
-    private val webSocketClient: WebSocketClient,
-    private val gson: Gson
+    private val webSocketClient: WebSocketClient
 ) : LoginRepository {
     private val TAG = "LoginRepositoryImpl"
 
@@ -44,7 +42,7 @@ class LoginRepositoryImpl @Inject constructor(
                     val jsonResponse = JSONObject(message)
                     jsonResponse.optString("type") == "login"
                 } catch (e: JsonSyntaxException) {
-                    false // Abaikan pesan yang bukan JSON valid
+                    false
                 }
             }
 

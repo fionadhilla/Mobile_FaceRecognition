@@ -14,9 +14,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 import android.net.Uri
+import androidx.compose.material3.Text
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.compose.ui.platform.LocalContext
+import com.example.myapplication4.ui.camera_option.CameraOptionScreen
 
 @Composable
 fun AppNavGraph(
@@ -43,8 +45,9 @@ fun AppNavGraph(
             CameraScreen(
                 viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
                 onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToAddFace = {},
-                onNavigateToProfile = { navController.navigate("profile") }
+                onNavigateToAddFace = { navController.navigate("addFace") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
             )
         }
 
@@ -68,7 +71,24 @@ fun AppNavGraph(
         }
 
         composable("addFace") {
-            AddFaceScreen(navController = navController) // Tidak perlu initialImageUri
+            AddFaceScreen(navController = navController)
+        }
+
+        composable("cameraOption"){
+           CameraOptionScreen(
+               navController = navController,
+               onNavigateToFaceDetection = {
+                   navController.navigate("camera")
+               }
+           )
+        }
+
+        composable("objectDetection") {
+            Text("Object Detection Screen (Not Implemented Yet)")
+        }
+
+        composable("anomalyDetection") {
+            Text("Anomaly Detection Screen (Not Implemented Yet)")
         }
     }
 }
