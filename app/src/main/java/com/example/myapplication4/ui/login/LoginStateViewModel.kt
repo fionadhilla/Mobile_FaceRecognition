@@ -1,23 +1,29 @@
 package com.example.myapplication4.ui.login
 
 import androidx.lifecycle.ViewModel
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-@HiltViewModel
-class LoginStateViewModel @Inject constructor() : ViewModel() {
+class LoginStateViewModel : ViewModel() {
+
+    private val _currentAdminId = MutableStateFlow<String?>(null)
+    val currentAdminId: StateFlow<String?> = _currentAdminId.asStateFlow()
 
     private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     fun login() {
         _isLoggedIn.value = true
     }
 
+    fun setLoggedInAdmin(adminId: String) {
+        _currentAdminId.value = adminId
+        _isLoggedIn.value = true
+    }
+
     fun logout() {
+        _currentAdminId.value = null
         _isLoggedIn.value = false
     }
 }

@@ -42,9 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap // Reconfirm if this utility is still appropriate or need custom
+import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
 import com.example.myapplication4.ui.components.BottomNavBar
-import com.example.myapplication4.ui.components.FaceOverlay // Will need to adapt this component
+import com.example.myapplication4.ui.components.FaceOverlay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,18 +54,17 @@ fun FaceDetectionCameraScreen(
     viewModel: FaceDetectionCameraViewModel = hiltViewModel(),
     onNavigateToHistory: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToMore: () -> Unit,
-    // onNavigateToAddFace: (Uri?) -> Unit // Removed if only detection is needed
+    onNavigateToMore: () -> Unit // Ini adalah callback untuk navigasi ke CameraOptionScreen
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
     val lensFacing by viewModel.lensFacing.collectAsState()
-    val detectedFaces by viewModel.detectedFaces.collectAsState() // Observe the new StateFlow
+    val detectedFaces by viewModel.detectedFaces.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
     val previewView = remember {
         PreviewView(context).also {
-            it.scaleType = PreviewView.ScaleType.FILL_CENTER // Often better for preview
+            it.scaleType = PreviewView.ScaleType.FILL_CENTER
         }
     }
     var imageWidth by remember { mutableStateOf(1) }
@@ -73,11 +72,9 @@ fun FaceDetectionCameraScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    // Removed cropping related states and LaunchedEffect if only detection is needed
-    // val croppedFaceImageUri by viewModel.croppedFaceImageUri.collectAsState()
-    // var isCroppingInProgress by remember { mutableStateOf(false) }
+    // Hapus state isMoreMenuExpanded dari sini
+    // var isMoreMenuExpanded by remember { mutableStateOf(false) }
 
-    // Show snackbar when face is detected
     LaunchedEffect(isFaceDetected) {
         if (isFaceDetected) {
             snackbarHostState.showSnackbar(
@@ -87,7 +84,6 @@ fun FaceDetectionCameraScreen(
         }
     }
 
-    // Camera binding
     LaunchedEffect(lensFacing) {
         val cameraProvider = withContext(Dispatchers.Main) {
             ProcessCameraProvider.getInstance(context).get()
@@ -102,13 +98,13 @@ fun FaceDetectionCameraScreen(
             .build()
 
         val imageAnalyzer = ImageAnalysis.Builder()
-            .setTargetResolution(Size(previewView.width, previewView.height)) // Match preview view size for analysis if possible
+            .setTargetResolution(Size(previewView.width, previewView.height))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
             .also { analysis ->
                 analysis.setAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
                     try {
-                        val bitmap = imageProxy.toBitmap() // Ensure this utility correctly handles imageProxy to Bitmap
+                        val bitmap = imageProxy.toBitmap()
                         imageWidth = imageProxy.width
                         imageHeight = imageProxy.height
                         val rotationDegrees = imageProxy.imageInfo.rotationDegrees
@@ -139,10 +135,10 @@ fun FaceDetectionCameraScreen(
         bottomBar = {
             BottomNavBar(
                 onHistoryClick = onNavigateToHistory,
-                // Removed onAddClick as it's for face recognition, not just detection
-                onAddClick = { /* No action or provide a different action for Face Detection mode */ },
+                onAddClick = { /* Tidak ada action spesifik untuk "Add Face" di sini */ },
                 onProfileClick = onNavigateToProfile,
-                onMoreClick = onNavigateToMore
+                onMoreClick = onNavigateToMore // Langsung panggil onNavigateToMore
+                // Hapus isMoreMenuExpanded, onToggleMoreMenu, onMoreOptionSelected dari sini
             )
         },
         modifier = Modifier.background(color = Color.LightGray)
@@ -162,15 +158,13 @@ fun FaceDetectionCameraScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Pass the list of RectF to FaceOverlay
                 FaceOverlay(
                     modifier = Modifier.fillMaxSize(),
-                    detectedFaces = detectedFaces, // Pass the new data
+                    detectedFaces = detectedFaces,
                     imageWidth = imageWidth,
                     imageHeight = imageHeight,
                     isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
                 )
-
 
                 IconButton(
                     onClick = { viewModel.switchCamera() },

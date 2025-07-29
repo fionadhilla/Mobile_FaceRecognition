@@ -30,9 +30,21 @@ fun ProfileScreen(navController: NavController,
                   loginStateViewModel: LoginStateViewModel,
                   onNavigateToEditProfile: () -> Unit = {})
 {
-    val adminProfile by viewModel.adminProfile.collectAsState() // UBAH userProfile MENJADI adminProfile
+    val adminProfile by viewModel.adminProfile.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
+
+    // Asumsikan LoginStateViewModel memiliki StateFlow untuk ID pengguna yang login
+    // Misalnya: val loggedInUserId by loginStateViewModel.loggedInUserId.collectAsState()
+    // Anda perlu mengganti 'loggedInUserId' dengan nama StateFlow yang benar dari LoginStateViewModel Anda.
+    val loggedInAdminId by loginStateViewModel.currentAdminId.collectAsState() // Contoh: Asumsikan LoginStateViewModel memiliki currentAdminId
+
+    // Gunakan LaunchedEffect untuk memanggil setAdminId ketika ID tersedia
+    LaunchedEffect(loggedInAdminId) {
+        loggedInAdminId?.let { id ->
+            viewModel.setAdminId(id)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
@@ -69,7 +81,7 @@ fun ProfileScreen(navController: NavController,
                     tint = Color.White
                 )
                 Text(
-                    text = adminProfile?.name.orEmpty(), // Changed from fullName to name
+                    text = adminProfile?.name.orEmpty(),
                     color = Color.White,
                     modifier = Modifier.padding(top = 8.dp, bottom = 50.dp),
                 )
