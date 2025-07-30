@@ -31,7 +31,8 @@ class LoginRepositoryImpl @Inject constructor(
         val sent = webSocketClient.send(loginMessage)
 
         if (!sent) {
-            val errorMsg = "Failed to send login request via WebSocket. Connection might not be open or re-connection failed."
+            val errorMsg =
+                "Failed to send login request via WebSocket. Connection might not be open or re-connection failed."
             Log.e(TAG, errorMsg)
             return Result.failure(RuntimeException(errorMsg))
         }
@@ -41,7 +42,8 @@ class LoginRepositoryImpl @Inject constructor(
                 try {
                     val jsonResponse = JSONObject(message)
                     jsonResponse.optString("type") == "login"
-                } catch (e: JsonSyntaxException) {
+                } catch (e: Exception) {
+                    Log.w(TAG, "Invalid JSON response received: $message")
                     false
                 }
             }
@@ -56,11 +58,12 @@ class LoginRepositoryImpl @Inject constructor(
                 Result.success(token)
             } else {
                 Log.d(TAG, "Login failed: $message")
-                Result.failure(RuntimeException(message ?: "Unknown login error"))
+                Result.failure(RuntimeException(message.ifEmpty { "Login failed: Unknown error" }))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error waiting for or parsing login response: ${e.message}", e)
+            Log.e(TAG, "Error parsing login response: ${e.message}")
             Result.failure(RuntimeException("Error processing login response: ${e.message}"))
         }
     }
 }
+

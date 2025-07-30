@@ -71,7 +71,10 @@ fun AppNavGraph(
         }
 
         composable("addFace") {
-            AddFaceScreen(navController = navController)
+            AddFaceScreen(
+                navController = navController,
+                onNavigateToCamera = {navController.navigate("camera")}
+            )
         }
 
         composable("cameraOption"){

@@ -27,9 +27,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import android.graphics.Matrix
+import android.util.Size
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import com.example.myapplication4.domain.utils.ImageCropper
+import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmapWithoutConverter
 import com.example.myapplication4.face.MediaPipeFaceDetector
 import java.io.File
 import java.io.FileOutputStream
@@ -68,6 +70,9 @@ class AddFaceViewModel @Inject constructor(
     private val capturedFrames = mutableListOf<Bitmap>()
     private var recordingJob: Job? = null
     private var lastFrameCaptureTime: Long = 0L
+
+    private val _imageDimensions = MutableStateFlow(Size(1, 1))
+    val imageDimensions: StateFlow<Size> = _imageDimensions
 
     private val _countdown = MutableStateFlow(5)
     val countdown: StateFlow<Int> = _countdown
@@ -151,8 +156,15 @@ class AddFaceViewModel @Inject constructor(
         }
     }
 
-    @ExperimentalGetImage // Anotasi diperlukan karena imageProxy.toBitmap() juga @ExperimentalGetImage
-    fun processFrame(imageProxy: ImageProxy) { // Hanya menerima ImageProxy
+    fun updateImageDimensions(width: Int, height: Int) {
+        if (width > 1 && height > 1 && _imageDimensions.value.width != width || _imageDimensions.value.height != height) {
+            _imageDimensions.value = Size(width, height)
+            Log.d("AddFaceViewModel", "Updated image dimensions to: ${width}x${height}")
+        }
+    }
+
+    @ExperimentalGetImage
+    fun processFrame(imageProxy: ImageProxy) {
         val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 
         try {
@@ -161,7 +173,8 @@ class AddFaceViewModel @Inject constructor(
                 return // Jangan close imageProxy di sini, biarkan finally yang menangani
             }
 
-            var bitmap = imageProxy.toBitmap(yuvToRgbConverter)
+            var bitmap = imageProxy.toBitmapWithoutConverter()
+
             if (bitmap == null || bitmap.isRecycled) {
                 Log.e(TAG, "Failed to convert ImageProxy to Bitmap or bitmap is recycled.")
                 return // Jangan close imageProxy di sini
@@ -226,7 +239,7 @@ class AddFaceViewModel @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error processing frame: ${e.message}", e)
         } finally {
-            imageProxy.close() // Penting: Selalu tutup imageProxy di akhir analyzer
+            imageProxy.close()
         }
     }
 

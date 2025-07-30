@@ -58,30 +58,52 @@ class YuvToRgbConverter(context: Context) {
     }
 
     private fun imageToByteBuffer(image: Image, outputBuffer: ByteBuffer) {
-        outputBuffer.rewind() // Reset position to 0
+        outputBuffer.rewind()
 
         val planes = image.planes
+        var maxRowStride = 0
         for (plane in planes) {
+            if (plane.rowStride > maxRowStride) {
+                maxRowStride = plane.rowStride
+            }
+        }
+        val rowData = ByteArray(maxRowStride)
+
+        for (i in planes.indices) {
+            val plane = planes[i]
             val buffer = plane.buffer
             val rowStride = plane.rowStride
             val pixelStride = plane.pixelStride
 
-            val width = image.width
-            val height = image.height
+            val planeWidth = if (i == 0) image.width else image.width / 2
+            val planeHeight = if (i == 0) image.height else image.height / 2
 
-            val chromaWidth = if (plane == planes[0]) width else width / 2
-            val chromaHeight = if (plane == planes[0]) height else height / 2
+            buffer.position(0) // Pastikan buffer plane juga diatur ulang
 
-            for (y in 0 until chromaHeight) {
-                for (x in 0 until chromaWidth) {
-                    val pixelIndex = y * rowStride + x * pixelStride
-                    if (buffer.remaining() > pixelIndex) { // Cek batas buffer
-                        outputBuffer.put(buffer.get(pixelIndex))
+            for (row in 0 until planeHeight) {
+                val bytesToRead = minOf(rowStride, buffer.remaining())
+
+                if (bytesToRead <= 0) {
+                    Log.e("YuvToRgbConverter", "No more bytes to read for plane $i, row $row. Bytes remaining: ${buffer.remaining()}, rowStride: $rowStride")
+                    break
+                }
+
+                buffer.get(rowData, 0, bytesToRead)
+
+                for (col in 0 until planeWidth) {
+                    val byteIndex = col * pixelStride
+                    if (byteIndex < bytesToRead) {
+                        outputBuffer.put(rowData[byteIndex])
+                    } else {
+                        Log.e("YuvToRgbConverter", "byteIndex ($byteIndex) out of bounds for rowData (bytes read ${bytesToRead}). Plane: $i, Row: $row, Col: $col")
+                        break
                     }
                 }
             }
         }
+        outputBuffer.rewind()
     }
+
 
     fun close() {
         if (::inputAllocation.isInitialized) inputAllocation.destroy()

@@ -41,13 +41,15 @@ import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.layout.layout
 
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
 fun AddFaceScreen(
     navController: NavController,
-    viewModel: AddFaceViewModel = hiltViewModel()
+    viewModel: AddFaceViewModel = hiltViewModel(),
+    onNavigateToCamera: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -56,7 +58,7 @@ fun AddFaceScreen(
     val message by viewModel.message.collectAsState()
     val lensFacing by viewModel.lensFacing.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
-
+    val imageDimensions by viewModel.imageDimensions.collectAsState()
     val previewView = remember { PreviewView(context) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -88,7 +90,18 @@ fun AddFaceScreen(
             .build()
             .also { analysis ->
                 analysis.setAnalyzer(executor) { imageProxy ->
-                    viewModel.processFrame(imageProxy)
+                    try {
+                        if (imageProxy.image == null) {
+                            Log.w("Analyzer", "imageProxy.image is null, skipping.")
+                            imageProxy.close()
+                            return@setAnalyzer
+                        }
+                        viewModel.updateImageDimensions(imageProxy.width, imageProxy.height)
+                        viewModel.processFrame(imageProxy)
+                    } catch (e: Exception) {
+                        Log.e("Analyzer", "Crash in analyzer: ${e.message}", e)
+                        imageProxy.close()
+                    }
                 }
             }
 
@@ -134,12 +147,6 @@ fun AddFaceScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    "Tambah Wajah",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.align(Alignment.CenterVertically)
-                )
-                Spacer(modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(25.dp))
@@ -159,8 +166,8 @@ fun AddFaceScreen(
                     FaceOverlay(
                         modifier = Modifier.fillMaxSize(),
                         detectionResult = it,
-                        imageWidth = imageWidth,
-                        imageHeight = imageHeight,
+                        imageWidth = imageDimensions.width,
+                        imageHeight = imageDimensions.height,
                         isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
                     )
                 }
@@ -188,7 +195,7 @@ fun AddFaceScreen(
             OutlinedTextField(
                 value = userPhoneInput,
                 onValueChange = { userPhoneInput = it },
-                label = { Text("No Telepon (08)") },
+                label = { Text("No Telepon (62)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -241,7 +248,7 @@ fun AddFaceScreen(
                 RecordingState.DONE -> {
                     Text("Wajah berhasil ditambahkan!", fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = { navController.popBackStack() }) {
+                    Button(onClick = { onNavigateToCamera() }) {
                         Text("Selesai")
                     }
                 }

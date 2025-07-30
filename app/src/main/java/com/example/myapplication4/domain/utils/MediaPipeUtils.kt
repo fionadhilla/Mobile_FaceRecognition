@@ -33,6 +33,8 @@ object MediaPipeUtils {
         vBuffer.get(nv21, ySize, vSize)
         uBuffer.get(nv21, ySize + vSize, uSize)
 
+        image.close() // Penting: Tutup image dari ImageProxy
+
         val yuvImage = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
         val out = ByteArrayOutputStream()
         val rect = Rect(0, 0, this.width, this.height)
@@ -42,7 +44,6 @@ object MediaPipeUtils {
         val imageBytes = out.toByteArray()
         val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 
-        image.close() // Penting: Tutup image dari ImageProxy
 
         Log.d("MediaPipeUtils", "toBitmap(): ImageProxy Dims: ${this.width}x${this.height}, Bitmap Dims: ${bitmap?.width}x${bitmap?.height}")
         if (bitmap == null) {
@@ -64,6 +65,10 @@ object MediaPipeUtils {
         try {
             yuvConverter.yuvToRgb(image, outputBitmap)
             Log.d("MediaPipeUtils", "toBitmap (with converter): ImageProxy Dims: ${this.width}x${this.height}, Bitmap Dims: ${outputBitmap.width}x${outputBitmap.height}")
+            if (outputBitmap.width <= 1 || outputBitmap.height <= 1) {
+                Log.e("MediaPipeUtils", "Bitmap size too small: ${outputBitmap.width}x${outputBitmap.height}")
+                return null
+            }
             return outputBitmap
         } catch (e: Exception) {
             Log.e("MediaPipeUtils", "Error converting YUV to RGB using converter: ${e.message}", e)
@@ -71,6 +76,7 @@ object MediaPipeUtils {
         } finally {
             image.close() // Penting: Tutup image dari ImageProxy
         }
+
     }
 
     fun Bitmap.cropBitmap(rect: RectF): Bitmap {
