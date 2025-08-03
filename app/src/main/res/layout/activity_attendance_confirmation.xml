@@ -23,11 +23,10 @@
             android:textSize="25dp" />
 
         <ImageView
-            android:id="@+id/imageView16"
+            android:id="@+id/imageView17"
             android:layout_width="match_parent"
-            android:layout_height="198dp"
-            android:layout_marginTop="60dp"
-            app:srcCompat="@drawable/baseline_beenhere_24" />
+            android:layout_height="200dp"
+            tools:srcCompat="@tools:sample/avatars" />
 
         <TextView
             android:id="@+id/textView11"
@@ -45,18 +44,12 @@
             android:layout_marginBottom="16dp"
             android:layout_height="80dp">
 
-            <ImageView
-                android:id="@+id/imageView17"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:srcCompat="@tools:sample/avatars" />
-
             <TextView
                 android:id="@+id/textView13"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Name : Nama Placeholder"
-                tools:layout_editor_absoluteX="142dp"
+                tools:layout_editor_absoluteX="100dp"
                 tools:layout_editor_absoluteY="16dp" />
 
             <TextView
@@ -64,7 +57,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Status : Check-In"
-                tools:layout_editor_absoluteX="142dp"
+                tools:layout_editor_absoluteX="129dp"
                 tools:layout_editor_absoluteY="45dp" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>

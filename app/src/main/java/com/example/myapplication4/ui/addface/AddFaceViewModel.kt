@@ -81,7 +81,12 @@ class AddFaceViewModel @Inject constructor(
 
     private var liveFaceDetector: MediaPipeFaceDetector? = null
 
-    private var yuvToRgbConverter: YuvToRgbConverter
+    private val _emailError = MutableStateFlow<String?>(null)
+    val emailError: StateFlow<String?> = _emailError
+
+    private val _phoneError = MutableStateFlow<String?>(null)
+    val phoneError: StateFlow<String?> = _phoneError
+
 
     companion object {
         private const val RECORD_DURATION_MILLIS = 5000L
@@ -92,8 +97,6 @@ class AddFaceViewModel @Inject constructor(
     }
 
     init {
-        yuvToRgbConverter = YuvToRgbConverter(application)
-
         liveFaceDetector = MediaPipeFaceDetector(
             context = getApplication(),
             onResult = { result ->
@@ -116,6 +119,14 @@ class AddFaceViewModel @Inject constructor(
         }
     }
 
+    private fun isEmailValid(): Boolean {
+        return email.value.isNotEmpty() && email.value.contains("@")
+    }
+
+    private fun isPhoneNumValid(): Boolean {
+        return phone.value.isNotEmpty() && phone.value.length in 13..14
+    }
+
     fun startRecording(userName: String, userEmail: String, userPhone: String) {
         if (_recordingState.value != RecordingState.IDLE) {
             Log.w(TAG, "Already recording or processing. Ignoring startRecording call.")
@@ -125,6 +136,25 @@ class AddFaceViewModel @Inject constructor(
         name.value = userName
         email.value = userEmail
         phone.value = userPhone
+
+        var isValid = true
+        if (!isEmailValid()) {
+            _emailError.value = "Email tidak valid! Harus mengandung '@'"
+            isValid = false
+        } else {
+            _emailError.value = null
+        }
+
+        if(!isPhoneNumValid()) {
+            _phoneError.value = "Nomor telepon tidak valid (tidak boleh kosong dan tidak melebihi 13 nomor)"
+            isValid = false
+        } else {
+            _phoneError.value = null
+        }
+
+        if(!isValid){
+            return
+        }
 
         _recordingState.value = RecordingState.RECORDING
         _recordingProgress.value = 0f
@@ -162,6 +192,8 @@ class AddFaceViewModel @Inject constructor(
             Log.d("AddFaceViewModel", "Updated image dimensions to: ${width}x${height}")
         }
     }
+
+
 
     @ExperimentalGetImage
     fun processFrame(imageProxy: ImageProxy) {
@@ -239,91 +271,6 @@ class AddFaceViewModel @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error processing frame: ${e.message}", e)
         } finally {
-            imageProxy.close()
-        }
-    }
-
-    @ExperimentalGetImage
-    fun processFrameForRecording(imageProxy: ImageProxy) {
-        if (_recordingState.value != RecordingState.RECORDING) {
-            imageProxy.close()
-            return
-        }
-
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastFrameCaptureTime >= FRAME_CAPTURE_INTERVAL_MILLIS) {
-            lastFrameCaptureTime = currentTime
-            viewModelScope.launch(Dispatchers.Default) {
-                var bitmap: Bitmap? = null
-                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-
-                try {
-                    if (imageProxy.image == null) {
-                        Log.w(TAG, "ImageProxy.image is null in processFrameForRecording. Skipping frame.")
-                        imageProxy.close()
-                        return@launch
-                    }
-
-                    // GUNAKAN CONVERTER BARU DI SINI
-                    bitmap = imageProxy.toBitmap(yuvToRgbConverter)
-                    if (bitmap == null || bitmap.isRecycled) {
-                        Log.e(TAG, "Failed to convert ImageProxy to Bitmap or bitmap is recycled for recording.")
-                        imageProxy.close()
-                        return@launch
-                    }
-                    Log.d(TAG, "Bitmap converted from ImageProxy for recording. Dims: ${bitmap.width}x${bitmap.height}, Rotation: $rotationDegrees")
-
-                    var currentBitmap = bitmap
-
-                    if (rotationDegrees != 0) {
-                        val matrix = Matrix()
-                        matrix.postRotate(rotationDegrees.toFloat())
-                        val rotatedBitmap = Bitmap.createBitmap(
-                            currentBitmap,
-                            0,
-                            0,
-                            currentBitmap.width,
-                            currentBitmap.height,
-                            matrix,
-                            true
-                        )
-                        currentBitmap.recycle()
-                        currentBitmap = rotatedBitmap
-                        Log.d(TAG, "Bitmap rotated by $rotationDegrees degrees. New Dims: ${currentBitmap.width}x${currentBitmap.height}")
-                    }
-
-                    if (isFrontCamera) {
-                        val matrixFlip = Matrix()
-                        matrixFlip.postScale(-1f, 1f, currentBitmap.width / 2f, currentBitmap.height / 2f)
-                        val flippedBitmap = Bitmap.createBitmap(
-                            currentBitmap,
-                            0,
-                            0,
-                            currentBitmap.width,
-                            currentBitmap.height,
-                            matrixFlip,
-                            true
-                        )
-                        currentBitmap.recycle()
-                        currentBitmap = flippedBitmap
-                        Log.d(TAG, "Bitmap horizontally flipped for front camera. New Dims: ${currentBitmap.width}x${currentBitmap.height}")
-                    }
-
-                    if (currentBitmap != null && !currentBitmap.isRecycled) {
-                        capturedFrames.add(currentBitmap)
-                        Log.d(TAG, "Frame captured and added to buffer. Buffer size: ${capturedFrames.size}. Bitmap Dims: ${currentBitmap.width}x${currentBitmap.height} (After orientation correction)")
-                    } else {
-                        Log.e(TAG, "Bitmap is null or recycled after processing steps. Not adding to buffer.")
-                    }
-
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error processing or capturing frame to buffer: ${e.message}", e)
-                    bitmap?.recycle()
-                } finally {
-                    imageProxy.close()
-                }
-            }
-        } else {
             imageProxy.close()
         }
     }
@@ -535,7 +482,6 @@ class AddFaceViewModel @Inject constructor(
         addFaceDetector.close()
         liveFaceDetector?.close()
         faceEmbedder.close()
-        yuvToRgbConverter.close() // Penting: Tutup converter saat ViewModel di-clear
         Log.d(TAG, "ViewModel cleared. Resources closed.")
     }
 }
