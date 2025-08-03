@@ -27,9 +27,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import android.graphics.Matrix
+import android.util.Size
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
 import com.example.myapplication4.domain.utils.ImageCropper
+import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmapWithoutConverter
 import com.example.myapplication4.face.MediaPipeFaceDetector
-
+import java.io.File
+import java.io.FileOutputStream
+import com.example.myapplication4.domain.utils.YuvToRgbConverter
 
 @HiltViewModel
 class AddFaceViewModel @Inject constructor(
@@ -65,12 +71,22 @@ class AddFaceViewModel @Inject constructor(
     private var recordingJob: Job? = null
     private var lastFrameCaptureTime: Long = 0L
 
+    private val _imageDimensions = MutableStateFlow(Size(1, 1))
+    val imageDimensions: StateFlow<Size> = _imageDimensions
+
     private val _countdown = MutableStateFlow(5)
     val countdown: StateFlow<Int> = _countdown
 
     private var isFrontCamera: Boolean = true
 
     private var liveFaceDetector: MediaPipeFaceDetector? = null
+
+    private val _emailError = MutableStateFlow<String?>(null)
+    val emailError: StateFlow<String?> = _emailError
+
+    private val _phoneError = MutableStateFlow<String?>(null)
+    val phoneError: StateFlow<String?> = _phoneError
+
 
     companion object {
         private const val RECORD_DURATION_MILLIS = 5000L
@@ -85,8 +101,8 @@ class AddFaceViewModel @Inject constructor(
             context = getApplication(),
             onResult = { result ->
                 _isFaceDetected.value = result.detections().isNotEmpty()
-                _liveDetectionResult.value = result // Update liveDetectionResult untuk FaceOverlay
-                Log.d(TAG, "Live face detected: ${_isFaceDetected.value}")
+                _liveDetectionResult.value = result
+//                Log.d(TAG, "Live face detected: ${_isFaceDetected.value}")
             },
             onError = { error ->
                 Log.e(TAG, "Live Face Detector error: ${error.message}")
@@ -103,6 +119,14 @@ class AddFaceViewModel @Inject constructor(
         }
     }
 
+    private fun isEmailValid(): Boolean {
+        return email.value.isNotEmpty() && email.value.contains("@")
+    }
+
+    private fun isPhoneNumValid(): Boolean {
+        return phone.value.isNotEmpty() && phone.value.length in 13..14
+    }
+
     fun startRecording(userName: String, userEmail: String, userPhone: String) {
         if (_recordingState.value != RecordingState.IDLE) {
             Log.w(TAG, "Already recording or processing. Ignoring startRecording call.")
@@ -112,6 +136,25 @@ class AddFaceViewModel @Inject constructor(
         name.value = userName
         email.value = userEmail
         phone.value = userPhone
+
+        var isValid = true
+        if (!isEmailValid()) {
+            _emailError.value = "Email tidak valid! Harus mengandung '@'"
+            isValid = false
+        } else {
+            _emailError.value = null
+        }
+
+        if(!isPhoneNumValid()) {
+            _phoneError.value = "Nomor telepon tidak valid (tidak boleh kosong dan tidak melebihi 13 nomor)"
+            isValid = false
+        } else {
+            _phoneError.value = null
+        }
+
+        if(!isValid){
+            return
+        }
 
         _recordingState.value = RecordingState.RECORDING
         _recordingProgress.value = 0f
@@ -143,102 +186,91 @@ class AddFaceViewModel @Inject constructor(
         }
     }
 
-    // Fungsi handleDetection yang tidak terpakai telah dihapus dari sini.
-
-    fun processLiveFrame(bitmap: Bitmap, rotationDegrees: Int) {
-        var processedBitmap = bitmap
-        if (rotationDegrees != 0) {
-            val matrix = Matrix()
-            matrix.postRotate(rotationDegrees.toFloat())
-            val rotatedBitmap = Bitmap.createBitmap(
-                processedBitmap,
-                0,
-                0,
-                processedBitmap.width,
-                processedBitmap.height,
-                matrix,
-                true
-            )
-            processedBitmap.recycle()
-            processedBitmap = rotatedBitmap
+    fun updateImageDimensions(width: Int, height: Int) {
+        if (width > 1 && height > 1 && _imageDimensions.value.width != width || _imageDimensions.value.height != height) {
+            _imageDimensions.value = Size(width, height)
+            Log.d("AddFaceViewModel", "Updated image dimensions to: ${width}x${height}")
         }
-
-        if (isFrontCamera) {
-            val matrixFlip = Matrix()
-            matrixFlip.postScale(-1f, 1f, processedBitmap.width / 2f, processedBitmap.height / 2f)
-            val flippedBitmap = Bitmap.createBitmap(
-                processedBitmap,
-                0,
-                0,
-                processedBitmap.width,
-                processedBitmap.height,
-                matrixFlip,
-                true
-            )
-            processedBitmap.recycle()
-            processedBitmap = flippedBitmap
-        }
-        liveFaceDetector?.detect(processedBitmap)
     }
 
-    fun processFrameForRecording(imageProxy: ImageProxy) {
-        if (_recordingState.value != RecordingState.RECORDING) {
-            imageProxy.close()
-            return
-        }
 
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastFrameCaptureTime >= FRAME_CAPTURE_INTERVAL_MILLIS) {
-            lastFrameCaptureTime = currentTime
-            viewModelScope.launch(Dispatchers.Default) {
-                var bitmap = imageProxy.toBitmap()
-                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 
-                try {
-                    if (rotationDegrees != 0) {
-                        val matrix = Matrix()
-                        matrix.postRotate(rotationDegrees.toFloat())
-                        val rotatedBitmap = Bitmap.createBitmap(
-                            bitmap,
-                            0,
-                            0,
-                            bitmap.width,
-                            bitmap.height,
-                            matrix,
-                            true
-                        )
-                        bitmap.recycle()
-                        bitmap = rotatedBitmap
-                        Log.d(TAG, "Bitmap rotated by $rotationDegrees degrees.")
-                    }
+    @ExperimentalGetImage
+    fun processFrame(imageProxy: ImageProxy) {
+        val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 
-                    if (isFrontCamera) {
-                        val matrixFlip = Matrix()
-                        matrixFlip.postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
-                        val flippedBitmap = Bitmap.createBitmap(
-                            bitmap,
-                            0,
-                            0,
-                            bitmap.width,
-                            bitmap.height,
-                            matrixFlip,
-                            true
-                        )
-                        bitmap.recycle()
-                        bitmap = flippedBitmap
-                        Log.d(TAG, "Bitmap horizontally flipped for front camera.")
-                    }
-
-                    capturedFrames.add(bitmap)
-                    Log.d(TAG, "Frame captured and added to buffer. Buffer size: ${capturedFrames.size}. Bitmap Dims: ${bitmap.width}x${bitmap.height} (After orientation correction)")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error processing or capturing frame to buffer: ${e.message}", e)
-                    bitmap?.recycle()
-                } finally {
-                    imageProxy.close()
-                }
+        try {
+            if (imageProxy.image == null) {
+                Log.w(TAG, "ImageProxy.image is null in processFrame. Skipping frame.")
+                return // Jangan close imageProxy di sini, biarkan finally yang menangani
             }
-        } else {
+
+            var bitmap = imageProxy.toBitmapWithoutConverter()
+
+            if (bitmap == null || bitmap.isRecycled) {
+                Log.e(TAG, "Failed to convert ImageProxy to Bitmap or bitmap is recycled.")
+                return // Jangan close imageProxy di sini
+            }
+
+            // Lakukan rotasi dan flip yang diperlukan untuk tampilan live dan deteksi
+            var processedBitmap = bitmap
+            if (rotationDegrees != 0) {
+                val matrix = Matrix()
+                matrix.postRotate(rotationDegrees.toFloat())
+                val rotatedBitmap = Bitmap.createBitmap(
+                    processedBitmap,
+                    0,
+                    0,
+                    processedBitmap.width,
+                    processedBitmap.height,
+                    matrix,
+                    true
+                )
+                processedBitmap.recycle()
+                processedBitmap = rotatedBitmap
+            }
+
+            if (isFrontCamera) {
+                val matrixFlip = Matrix()
+                matrixFlip.postScale(-1f, 1f, processedBitmap.width / 2f, processedBitmap.height / 2f)
+                val flippedBitmap = Bitmap.createBitmap(
+                    processedBitmap,
+                    0,
+                    0,
+                    processedBitmap.width,
+                    processedBitmap.height,
+                    matrixFlip,
+                    true
+                )
+                processedBitmap.recycle()
+                processedBitmap = flippedBitmap
+            }
+
+            // Lakukan live detection
+            liveFaceDetector?.detect(processedBitmap) // Ini akan mengupdate _isFaceDetected dan _liveDetectionResult
+
+            // Cek apakah sedang dalam status RECORDING untuk menambahkan ke buffer
+            if (_recordingState.value == RecordingState.RECORDING) {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastFrameCaptureTime >= FRAME_CAPTURE_INTERVAL_MILLIS) {
+                    lastFrameCaptureTime = currentTime
+                    // Tambahkan bitmap yang sudah diproses ( rotated/flipped ) ke buffer
+                    if (processedBitmap != null && !processedBitmap.isRecycled) {
+                        capturedFrames.add(processedBitmap) // Tambahkan bitmap ini ke buffer
+                        Log.d(TAG, "Frame captured and added to buffer. Buffer size: ${capturedFrames.size}. Bitmap Dims: ${processedBitmap.width}x${processedBitmap.height} (After orientation correction)")
+                    } else {
+                        Log.e(TAG, "Processed bitmap is null or recycled. Not adding to buffer.")
+                    }
+                } else {
+                    processedBitmap.recycle() // Daur ulang jika tidak ditambahkan ke buffer
+                }
+            } else {
+                processedBitmap.recycle() // Daur ulang jika tidak sedang merekam
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error processing frame: ${e.message}", e)
+        } finally {
             imageProxy.close()
         }
     }
@@ -257,28 +289,47 @@ class AddFaceViewModel @Inject constructor(
 
         withContext(Dispatchers.Default) {
             val totalFrames = capturedFrames.size
-            for ((index, bitmap) in capturedFrames.withIndex()) {
-                _message.value = "Memproses frame ${index + 1}/${totalFrames}..."
-                Log.d(TAG, "Processing frame ${index + 1}/${totalFrames}. Original Bitmap Dims: ${bitmap.width}x${bitmap.height}")
+            val iterator = capturedFrames.iterator()
+            var frameIndex = 0
+
+            while (iterator.hasNext()) {
+                val bitmap = iterator.next()
+                frameIndex++
+
+                _message.value = "Memproses frame ${frameIndex}/${totalFrames}..."
+                Log.d(TAG, "Processing frame ${frameIndex}/${totalFrames}. Original Bitmap Dims: ${bitmap.width}x${bitmap.height}")
+
+                // Debugging: Simpan bitmap sebelum deteksi wajah
+                try {
+                    val debugFileName = "processed_frame_${frameIndex}_${System.currentTimeMillis()}.jpg"
+                    val file = File(getApplication<Application>().getExternalFilesDir(null), debugFileName)
+                    FileOutputStream(file).use { out ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+                        Log.d(TAG, "Saved debug bitmap BEFORE face detection: ${file.absolutePath}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error saving debug bitmap BEFORE face detection: ${e.message}")
+                }
 
                 val detectionResult: FaceDetectorResult? = try {
                     addFaceDetector.detect(bitmap)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error during face detection for frame ${index + 1}: ${e.message}", e)
+                    Log.e(TAG, "Error during face detection for frame ${frameIndex}: ${e.message}", e)
                     null
                 }
 
                 if (detectionResult == null || detectionResult.detections().isEmpty()) {
-                    Log.w(TAG, "No detection result or no faces detected in frame ${index + 1}.")
-                    bitmap.recycle()
+                    Log.w(TAG, "No detection result or no faces detected in frame ${frameIndex}.")
+                    bitmap.recycle() // Daur ulang bitmap ini karena tidak digunakan lebih lanjut
+                    iterator.remove() // Hapus dari daftar jika tidak ada deteksi
                     continue
                 }
 
                 detectionResult.detections().firstOrNull()?.let { detection ->
                     facesDetectedCount++
-                    Log.d(TAG, "Face detected in frame ${index + 1}.")
+                    Log.d(TAG, "Face detected in frame ${frameIndex}.")
                     val originalFaceBox = detection.boundingBox()
-                    Log.d(TAG, "Original Bounding Box for frame ${index + 1}: ${originalFaceBox.left}, ${originalFaceBox.top}, ${originalFaceBox.right}, ${originalFaceBox.bottom}")
+                    Log.d(TAG, "Original Bounding Box for frame ${frameIndex}: left=${originalFaceBox.left}, top=${originalFaceBox.top}, right=${originalFaceBox.right}, bottom=${originalFaceBox.bottom}")
 
                     val expandedFaceBox = ImageCropper.expandBoundingBox(
                         boundingBox = originalFaceBox,
@@ -286,59 +337,75 @@ class AddFaceViewModel @Inject constructor(
                         imageHeight = bitmap.height,
                         expansionFactor = FACE_EXPANSION_FACTOR
                     )
-                    Log.d(TAG, "Expanded Crop Box for frame ${index + 1}: left=${expandedFaceBox.left}, top=${expandedFaceBox.top}, right=${expandedFaceBox.right}, bottom=${expandedFaceBox.bottom}")
+                    Log.d(TAG, "Expanded Crop Box for frame ${frameIndex}: left=${expandedFaceBox.left}, top=${expandedFaceBox.top}, right=${expandedFaceBox.right}, bottom=${expandedFaceBox.bottom}")
 
-                    val croppedFace = try {
-                        ImageCropper.cropBitmap(bitmap, expandedFaceBox)
+                    var croppedFace: Bitmap? = null
+                    try {
+                        croppedFace = ImageCropper.cropBitmap(bitmap, expandedFaceBox)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error cropping bitmap for frame ${index + 1}: ${e.message}", e)
-                        null
-                    } finally {
+                        Log.e(TAG, "Error cropping bitmap for frame ${frameIndex}: ${e.message}", e)
+                        // Pastikan bitmap asli didaur ulang meskipun cropping gagal
                         bitmap.recycle()
+                        iterator.remove()
+                        return@let // Keluar dari block let
                     }
 
                     if (croppedFace == null || croppedFace.isRecycled) {
-                        Log.e(TAG, "Cropped bitmap is null or recycled for frame ${index + 1}.")
-                        croppedFace?.recycle()
+                        Log.e(TAG, "Cropped bitmap is null or recycled for frame ${frameIndex}.")
+                        bitmap.recycle() // Daur ulang bitmap asli
+                        croppedFace?.recycle() // Pastikan croppedFace didaur ulang jika ada
+                        iterator.remove()
                         return@let
                     }
-                    Log.d(TAG, "Cropped Bitmap Dims for frame ${index + 1}: ${croppedFace.width}x${croppedFace.height}")
+                    Log.d(TAG, "Cropped Bitmap Dims for frame ${frameIndex}: ${croppedFace.width}x${croppedFace.height}")
 
-                    val resizedFace = try {
-                        croppedFace.resizeBitmap(TARGET_FACE_SIZE, TARGET_FACE_SIZE)
+                    var resizedFace: Bitmap? = null
+                    try {
+                        resizedFace = croppedFace.resizeBitmap(TARGET_FACE_SIZE, TARGET_FACE_SIZE)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error resizing bitmap for frame ${index + 1}: ${e.message}", e)
-                        null
-                    } finally {
+                        Log.e(TAG, "Error resizing bitmap for frame ${frameIndex}: ${e.message}", e)
+                        // Daur ulang bitmap yang sudah tidak digunakan
                         croppedFace.recycle()
+                        bitmap.recycle()
+                        iterator.remove()
+                        return@let
+                    } finally {
+                        croppedFace.recycle() // Daur ulang croppedFace setelah resize
                     }
 
                     if (resizedFace == null || resizedFace.isRecycled) {
-                        Log.e(TAG, "Resized bitmap is null or recycled for frame ${index + 1}.")
-                        resizedFace?.recycle()
+                        Log.e(TAG, "Resized bitmap is null or recycled for frame ${frameIndex}.")
+                        resizedFace?.recycle() // Pastikan resizedFace didaur ulang jika ada
+                        bitmap.recycle() // Daur ulang bitmap asli
+                        iterator.remove()
                         return@let
                     }
-                    Log.d(TAG, "Resized Bitmap Dims for frame ${index + 1}: ${resizedFace.width}x${resizedFace.height}")
+                    Log.d(TAG, "Resized Bitmap Dims for frame ${frameIndex}: ${resizedFace.width}x${resizedFace.height}")
 
                     val embedding = try {
                         faceEmbedder.getEmbeddings(resizedFace)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error getting embeddings for frame ${index + 1}: ${e.message}", e)
+                        Log.e(TAG, "Error getting embeddings for frame ${frameIndex}: ${e.message}", e)
                         null
                     } finally {
-                        resizedFace.recycle()
+                        resizedFace.recycle() // Daur ulang resizedFace setelah embedding
                     }
 
                     if (embedding != null) {
                         allEmbeddings.add(embedding)
-                        Log.d(TAG, "Embedding successfully generated for frame ${index + 1}. Embedding size: ${embedding.size}")
+                        Log.d(TAG, "Embedding successfully generated for frame ${frameIndex}. Embedding size: ${embedding.size}")
                     } else {
-                        Log.w(TAG, "Embedding is null for frame ${index + 1}.")
+                        Log.w(TAG, "Embedding is null for frame ${frameIndex}.")
                     }
                     processedFramesForEmbeddingCount++
+                    bitmap.recycle() // Daur ulang bitmap asli setelah semua proses berhasil
+                    iterator.remove() // Hapus dari daftar
+                } ?: run { // Jika firstOrNull() menghasilkan null
+                    bitmap.recycle() // Daur ulang bitmap asli
+                    iterator.remove() // Hapus dari daftar
                 }
             }
-            capturedFrames.clear()
+            capturedFrames.clear() // Pastikan list benar-benar kosong
             Log.d(TAG, "Finished processing all frames. Total faces detected: $facesDetectedCount. Total frames processed for embedding: $processedFramesForEmbeddingCount.")
         }
 

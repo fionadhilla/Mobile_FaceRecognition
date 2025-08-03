@@ -36,7 +36,7 @@ class FaceNetModel @Inject constructor(context: Context) {
         return modelBuffer
     }
 
-    fun getFaceEmbedding(faceBitmap: Bitmap): FloatArray ? { // Tipe kembalian adalah ByteArray?
+    fun getFaceEmbedding(faceBitmap: Bitmap): FloatArray ? {
         if (interpreter == null) {
             Log.e("FaceNetModel", "Interpreter is not initialized.")
             return null

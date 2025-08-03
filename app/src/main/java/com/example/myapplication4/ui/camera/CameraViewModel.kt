@@ -13,13 +13,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 
 import com.example.myapplication4.domain.utils.ImageCropper
-import java.io.File
-import java.io.FileOutputStream
-import android.net.Uri
 import android.graphics.Matrix
 import javax.inject.Inject
 
@@ -45,9 +41,6 @@ class CameraViewModel @Inject constructor(
 
     private val _isFaceDetected = MutableStateFlow(false)
     val isFaceDetected: StateFlow<Boolean> = _isFaceDetected
-
-    private val _croppedFaceImageUri = MutableStateFlow<Uri?>(null)
-    val croppedFaceImageUri: StateFlow<Uri?> = _croppedFaceImageUri
 
     private val _verificationResult = MutableStateFlow<FaceVerificationResult?>(null)
     val verificationResult: StateFlow<FaceVerificationResult?> = _verificationResult
@@ -191,79 +184,6 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-
-    fun cropDetectedFace() {
-        viewModelScope.launch(Dispatchers.Default) {
-            val currentBitmap = lastProcessedBitmap
-            val currentDetectionResult = _detectionResult.value
-            val currentRotationDegrees = lastBitmapRotationDegrees
-            val isFrontCamera = (_lensFacing.value == CameraSelector.LENS_FACING_FRONT)
-
-            if (currentBitmap != null && currentDetectionResult != null && currentDetectionResult.detections().isNotEmpty()) {
-                val firstFaceBox = currentDetectionResult.detections().first().boundingBox()
-                try {
-                    val expandedFaceBox = ImageCropper.expandBoundingBox(
-                        boundingBox = firstFaceBox,
-                        imageWidth = currentBitmap.width,
-                        imageHeight = currentBitmap.height,
-                        expansionFactor = cropExpansionFactor
-                    )
-
-                    var croppedBitmap = ImageCropper.cropBitmap(currentBitmap, expandedFaceBox)
-
-                    if (currentRotationDegrees != 0) {
-                        val matrix = Matrix()
-                        matrix.postRotate(currentRotationDegrees.toFloat())
-                        val rotatedBitmap = Bitmap.createBitmap(
-                            croppedBitmap,
-                            0,
-                            0,
-                            croppedBitmap.width,
-                            croppedBitmap.height,
-                            matrix,
-                            true
-                        )
-                        croppedBitmap.recycle()
-                        croppedBitmap = rotatedBitmap
-                    }
-
-                    if (isFrontCamera) {
-                        val matrixFlip = Matrix()
-                        matrixFlip.postScale(-1f, 1f, croppedBitmap.width / 2f, croppedBitmap.height / 2f)
-                        val flippedBitmap = Bitmap.createBitmap(
-                            croppedBitmap,
-                            0,
-                            0,
-                            croppedBitmap.width,
-                            croppedBitmap.height,
-                            matrixFlip,
-                            true
-                        )
-                        croppedBitmap.recycle()
-                        croppedBitmap = flippedBitmap
-                    }
-
-
-                    val outputDir = getApplication<Application>().cacheDir
-                    val outputFile = File(outputDir, "cropped_face_${System.currentTimeMillis()}.jpg")
-                    FileOutputStream(outputFile).use { out ->
-                        croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-                    }
-                    val uri = Uri.fromFile(outputFile)
-                    _croppedFaceImageUri.value = uri
-                    croppedBitmap.recycle()
-
-                } catch (e: Exception) {
-                    Log.e("CameraViewModel", "Gagal menyimpan atau memotong wajah: ${e.message}", e)
-                    _croppedFaceImageUri.value = null
-                }
-            } else {
-                Log.d("CameraViewModel", "Tidak ada bitmap atau hasil deteksi wajah yang tersedia untuk di-crop. isFaceDetected was ${isFaceDetected.value}")
-                _croppedFaceImageUri.value = null
-            }
-        }
-    }
-
     private fun startPeriodicSync() {
         viewModelScope.launch {
             while (true) {
@@ -273,22 +193,11 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    fun clearCroppedFaceData() {
-        _croppedFaceImageUri.value?.let { uri ->
-            val file = File(uri.path!!)
-            if (file.exists()) {
-                file.delete()
-                Log.d("CameraViewModel", "Temporary cropped face file deleted: $uri")
-            }
-        }
-        _croppedFaceImageUri.value = null
-    }
 
     override fun onCleared() {
         super.onCleared()
         faceDetector?.close()
         lastProcessedBitmap?.recycle()
         lastProcessedBitmap = null
-        clearCroppedFaceData()
     }
 }
