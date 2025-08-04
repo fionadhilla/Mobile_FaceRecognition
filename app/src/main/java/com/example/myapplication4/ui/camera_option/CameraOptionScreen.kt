@@ -18,7 +18,8 @@ import androidx.navigation.NavController
 @Composable
 fun CameraOptionScreen(
     navController: NavController,
-    onNavigateToFaceDetection: () -> Unit
+    onNavigateToFaceDetection: () -> Unit,
+    onNavigateToPeopleCounting: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -65,6 +66,13 @@ fun CameraOptionScreen(
         DetectionButton(
             text = "Anomaly Detection",
             onClick = { navController.navigate("anomalyDetection") }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "People Counting",
+            onClick = onNavigateToPeopleCounting
         )
     }
 }
