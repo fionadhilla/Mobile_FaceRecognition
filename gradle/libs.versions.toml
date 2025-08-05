@@ -1,9 +1,9 @@
 [versions]
 agp = "8.7.1"
-hiltAndroid = "2.50"
-hiltCompiler = "2.50"
+hiltAndroid = "2.56.2"
+hiltCompiler = "2.56.2"
 hiltNavigationCompose = "1.2.0"
-kotlin = "1.9.24"
+kotlin = "2.2.0"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -13,12 +13,16 @@ material = "1.12.0"
 activity = "1.10.1"
 constraintlayout = "2.2.1"
 material3Android = "1.3.2"
-tasksVision = "0.10.21"
+tasksVision = "0.10.26"
 playServicesMlkitFaceDetection = "17.1.0"
 media3CommonKtx = "1.7.1"
 workRuntimeKtx = "2.10.2"
 hiltCommon = "1.2.0"
 hiltWork = "1.2.0"
+room = "2.7.2"
+litertSupportApi = "1.4.0"
+litertMetadata = "1.4.0"
+litert = "1.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -39,9 +43,16 @@ androidx-media3-common-ktx = { group = "androidx.media3", name = "media3-common-
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 androidx-hilt-common = { group = "androidx.hilt", name = "hilt-common", version.ref = "hiltCommon" }
 androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+litert-support-api = { group = "com.google.ai.edge.litert", name = "litert-support-api", version.ref = "litertSupportApi" }
+litert-metadata = { group = "com.google.ai.edge.litert", name = "litert-metadata", version.ref = "litertMetadata" }
+litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-kapt = {id = "org.jetbrains.kotlin.kapt"}
-hilt-android = { id = "com.google.dagger.hilt.android", version = "2.50" }
+hilt-android = { id = "com.google.dagger.hilt.android", version = "2.56.2" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

@@ -27,6 +27,7 @@ import com.example.myapplication4.data.repository.FaceRepositoryImpl
 import com.example.myapplication4.domain.utils.NetworkUtils
 import com.example.myapplication4.face.AddFaceDetector
 import com.example.myapplication4.ui.login.LoginStateViewModel
+import com.example.myapplication4.face.YoloV8PeopleDetector
 
 import dagger.Module
 import dagger.Provides
@@ -178,5 +179,11 @@ object AppModule {
         networkUtils: NetworkUtils
     ): SyncOfflineFacesUseCase {
         return SyncOfflineFacesUseCase(faceRepository, webSocketClient, networkUtils)
+    }
+
+    @Provides
+    @Singleton
+    fun provideYoloV8PeopleDetector(@ApplicationContext context: Context): YoloV8PeopleDetector {
+        return YoloV8PeopleDetector(context)
     }
 }

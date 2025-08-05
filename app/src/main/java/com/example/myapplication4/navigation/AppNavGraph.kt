@@ -1,24 +1,21 @@
 package com.example.myapplication4.navigation
 
-import androidx.compose.runtime.*
-import androidx.navigation.*
-import androidx.navigation.compose.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import com.example.myapplication4.ui.addface.AddFaceScreen
 import com.example.myapplication4.ui.camera.CameraScreen
-import com.example.myapplication4.ui.login.LoginScreen
-import com.example.myapplication4.ui.notifikasi.HistoryScreen
-import com.example.myapplication4.ui.profile.ProfileScreen
-import com.example.myapplication4.ui.login.LoginStateViewModel
-import com.example.myapplication4.ui.edit_profile.EditProfileScreen
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.compose.currentBackStackEntryAsState
-
-import android.net.Uri
-import androidx.compose.material3.Text
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import androidx.compose.ui.platform.LocalContext
 import com.example.myapplication4.ui.camera_option.CameraOptionScreen
+import com.example.myapplication4.ui.edit_profile.EditProfileScreen
+import com.example.myapplication4.ui.login.LoginScreen
+import com.example.myapplication4.ui.login.LoginStateViewModel
+import com.example.myapplication4.ui.notifikasi.HistoryScreen
+import com.example.myapplication4.ui.peopleCount.PeopleCountCameraScreen
+import com.example.myapplication4.ui.profile.ProfileScreen
 
 @Composable
 fun AppNavGraph(
@@ -77,11 +74,23 @@ fun AppNavGraph(
             )
         }
 
+        composable("peopleCount") {
+            PeopleCountCameraScreen(
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
+        }
+
         composable("cameraOption"){
            CameraOptionScreen(
                navController = navController,
                onNavigateToFaceDetection = {
                    navController.navigate("camera")
+               },
+
+               onNavigateToPeopleCounting = {
+                   navController.navigate("peopleCount")
                }
            )
         }
