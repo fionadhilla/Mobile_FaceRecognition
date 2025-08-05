@@ -2,7 +2,6 @@ package com.example.myapplication4.ui.addface
 
 import android.app.Application
 import android.graphics.Bitmap
-import android.graphics.RectF
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication4.domain.usecase.RegisterUserWithFaceUseCase
@@ -16,8 +15,7 @@ import androidx.camera.core.ImageProxy
 import androidx.compose.runtime.mutableStateOf
 import com.example.myapplication4.data.api.ApiResult
 import com.example.myapplication4.data.model.User
-import com.example.myapplication4.face.AddFaceDetector
-import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
+import com.example.myapplication4.modelLoad.AddFaceDetector
 import com.example.myapplication4.domain.utils.MediaPipeUtils.resizeBitmap
 import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
 import kotlinx.coroutines.Job
@@ -28,14 +26,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import android.graphics.Matrix
 import android.util.Size
-import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import com.example.myapplication4.domain.utils.ImageCropper
 import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmapWithoutConverter
-import com.example.myapplication4.face.MediaPipeFaceDetector
+import com.example.myapplication4.modelLoad.MediaPipeFaceDetector
 import java.io.File
 import java.io.FileOutputStream
-import com.example.myapplication4.domain.utils.YuvToRgbConverter
 
 @HiltViewModel
 class AddFaceViewModel @Inject constructor(

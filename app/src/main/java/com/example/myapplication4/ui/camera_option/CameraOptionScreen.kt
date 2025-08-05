@@ -19,7 +19,8 @@ import androidx.navigation.NavController
 fun CameraOptionScreen(
     navController: NavController,
     onNavigateToFaceDetection: () -> Unit,
-    onNavigateToPeopleCounting: () -> Unit
+    onNavigateToPeopleCounting: () -> Unit,
+    onNavigateToActivityDetection: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -73,6 +74,13 @@ fun CameraOptionScreen(
         DetectionButton(
             text = "People Counting",
             onClick = onNavigateToPeopleCounting
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "Activity Detection",
+            onClick = onNavigateToActivityDetection
         )
     }
 }

@@ -9,7 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication4.domain.utils.BoundingBox
-import com.example.myapplication4.face.YoloV8PeopleDetector
+import com.example.myapplication4.modelLoad.YoloV8PeopleDetector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.litert.support.api)
     implementation(libs.litert.metadata)
     implementation(libs.litert)
+    implementation(libs.litert.gpu)
 
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"

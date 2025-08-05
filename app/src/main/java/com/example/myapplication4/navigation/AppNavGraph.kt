@@ -16,6 +16,7 @@ import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.ui.notifikasi.HistoryScreen
 import com.example.myapplication4.ui.peopleCount.PeopleCountCameraScreen
 import com.example.myapplication4.ui.profile.ProfileScreen
+import com.example.myapplication4.ui.activityDetection.ActivityDetectionScreen
 
 @Composable
 fun AppNavGraph(
@@ -82,6 +83,14 @@ fun AppNavGraph(
             )
         }
 
+        composable("ActivityDetection") {
+            ActivityDetectionScreen(
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
+        }
+
         composable("cameraOption"){
            CameraOptionScreen(
                navController = navController,
@@ -91,6 +100,10 @@ fun AppNavGraph(
 
                onNavigateToPeopleCounting = {
                    navController.navigate("peopleCount")
+               },
+
+               onNavigateToActivityDetection = {
+                   navController.navigate("ActivityDetection")
                }
            )
         }
