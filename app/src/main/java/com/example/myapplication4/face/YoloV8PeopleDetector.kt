@@ -26,7 +26,7 @@ class YoloV8PeopleDetector @Inject constructor(
     private val outputSize = 84
     private val numBoxes = 8400
     private val personClassId = 0
-    private val scoreThreshold = 0.5f // Ambang batas untuk confidence
+    private val scoreThreshold = 0.5f
 
     init {
         try {
@@ -47,7 +47,6 @@ class YoloV8PeopleDetector @Inject constructor(
         }
 
         val tensorImage = preprocessImage(bitmap)
-        // Output model YOLOv8 TFLite memiliki shape [1, 84, 8400]
         val outputBuffer = Array(1) { Array(outputSize) { FloatArray(numBoxes) } }
 
         interpreter?.run(tensorImage.buffer, outputBuffer)
