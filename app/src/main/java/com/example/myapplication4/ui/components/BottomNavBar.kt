@@ -31,7 +31,7 @@ fun BottomNavBar(
     onHistoryClick: () -> Unit,
     onAddClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit // Kembali ke parameter onMoreClick sederhana
+    onMoreClick: () -> Unit
 ) {
     Box(
         modifier = Modifier

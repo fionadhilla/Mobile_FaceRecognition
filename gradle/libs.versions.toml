@@ -35,6 +35,7 @@ workRuntime = "2.10.2"
 hiltCommon = "1.2.0"
 hiltWork = "1.2.0"
 litert = "1.4.0"
+litertSupportApi = "1.4.0"
 
 [libraries]
 # Kotlin & Core
@@ -97,6 +98,7 @@ junit = { group = "junit", name = "junit", version = "4.13.2" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version = "1.1.5" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version = "3.5.1" }
 litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
+litert-support-api = { group = "com.google.ai.edge.litert", name = "litert-support-api", version.ref = "litertSupportApi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

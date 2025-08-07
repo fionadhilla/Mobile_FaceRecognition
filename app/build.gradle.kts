@@ -67,14 +67,17 @@ dependencies {
     implementation(libs.play.services.mlkit.face.detection) {
         exclude(group = "org.tensorflow", module = "tensorflow-lite-api")
         exclude(group = "com.google.android.gms", module = "play-services-tflite-java")
-    }
 
+    }
+    implementation ("org.tensorflow:tensorflow-lite:2.15.0") // Atau versi stabil terbaru
+    implementation ("org.tensorflow:tensorflow-lite-gpu:2.17.0") // Opsional, untuk akselerasi GPU
     implementation(libs.androidx.media3.common.ktx)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.common)
     implementation(libs.androidx.hilt.work)
     implementation("androidx.startup:startup-runtime:1.2.0")
     implementation(libs.litert)
+    implementation(libs.litert.support.api)
 //    implementation(libs.litert.support.api)
 //    implementation(libs.litert.metadata)
 //    implementation(libs.litert)

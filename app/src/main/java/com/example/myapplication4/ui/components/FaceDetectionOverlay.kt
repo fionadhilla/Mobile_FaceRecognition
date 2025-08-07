@@ -1,5 +1,7 @@
 package com.example.myapplication4.ui.components
 
+import android.graphics.RectF
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -7,14 +9,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import com.google.mediapipe.tasks.vision.facedetector.FaceDetectorResult
-import android.util.Log
 import com.example.myapplication4.ui.camera.CameraPreviewTransformer
 
 @Composable
-fun FaceOverlay(
+fun FaceDetectionOverlay(
     modifier: Modifier = Modifier,
-    detectionResult: FaceDetectorResult,
+    detectedFaces: List<RectF>, // Menggunakan parameter yang sesuai dengan ViewModel
     imageWidth: Int,
     imageHeight: Int,
     isFrontCamera: Boolean
@@ -23,9 +23,7 @@ fun FaceOverlay(
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        detectionResult.detections().forEachIndexed { index, detection ->
-            val box = detection.boundingBox()
-
+        detectedFaces.forEachIndexed { index, box ->
             val mappedBox = CameraPreviewTransformer.mapBoundingBoxToView(
                 boundingBox = box,
                 imageWidth = imageWidth,
@@ -46,7 +44,7 @@ fun FaceOverlay(
                 style = Stroke(width = 6f)
             )
 
-            Log.d("FaceOverlay", "Face #$index mapped to $mappedBox (orig=${box})")
+            Log.d("FaceDetectionOverlay", "Face #$index mapped to $mappedBox (orig=${box})")
         }
 
     }

@@ -1,28 +1,22 @@
-// In app/src/main/java/com/example/myapplication4/navigation/AppNavGraph.kt
 package com.example.myapplication4.navigation
 
-import androidx.compose.runtime.*
-import androidx.navigation.*
-import androidx.navigation.compose.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import com.example.myapplication4.ui.addface.AddFaceScreen
 import com.example.myapplication4.ui.camera.CameraScreen
+import com.example.myapplication4.ui.camera_option.CameraOptionScreen
+import com.example.myapplication4.ui.edit_profile.EditProfileScreen
 import com.example.myapplication4.ui.login.LoginScreen
+import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.ui.notifikasi.HistoryScreen
 import com.example.myapplication4.ui.profile.ProfileScreen
-import com.example.myapplication4.ui.login.LoginStateViewModel
-import com.example.myapplication4.ui.edit_profile.EditProfileScreen
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.myapplication4.ui.camera_option.CameraOptionScreen
-import com.example.myapplication4.ui.facedetection.FaceDetectionCameraScreen // Pastikan ini sudah diimpor
-
-
-import android.net.Uri
-import androidx.compose.material3.Text
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import androidx.compose.ui.platform.LocalContext
+import com.example.myapplication4.ui.vehicle_detection.VehicleDetectionScreen
+import com.example.myapplication4.ui.vehicle_detection.VehicleDetectionViewModel
 
 @Composable
 fun AppNavGraph(
@@ -49,14 +43,7 @@ fun AppNavGraph(
             CameraScreen(
                 viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
                 onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToAddFace = { imageUri ->
-                    val route = if (imageUri != null) {
-                        "addFace?imageUri=${Uri.encode(imageUri.toString())}"
-                    } else {
-                        "addFace?imageUri=null"
-                    }
-                    navController.navigate(route)
-                },
+                onNavigateToAddFace = { navController.navigate("addFace") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onNavigateToMore = { navController.navigate("cameraOption") }
             )
@@ -81,52 +68,64 @@ fun AppNavGraph(
             )
         }
 
-        composable(
-            "addFace?imageUri={imageUri}",
-            arguments = listOf(navArgument("imageUri") {
-                type = NavType.StringType
-                nullable = true
-            })
-        ) { backStackEntry ->
-            val imageUriString = backStackEntry.arguments?.getString("imageUri")
-            val imageUri = imageUriString?.let {
-                if (it == "null") null else Uri.parse(Uri.decode(it))
-            }
-
-            AddFaceScreen(
-                initialImageUri = imageUri,
-                onBack = {
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                },
-                onRetakePhoto = {
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                },
-                onSave = { _,_ ->
-                    navController.navigate("camera") { popUpTo("camera") { inclusive = true } }
-                }
-            )
+        composable("addFace") {
+//            AddFaceScreen(
+//                navController = navController,
+//                onNavigateToCamera = {navController.navigate("camera")}
+//            )
         }
 
-        composable("cameraOption") {
-            CameraOptionScreen(
+        composable("peopleCount") {
+//            PeopleCountCameraScreen(
+//                onNavigateToHistory = { navController.navigate("history") },
+//                onNavigateToProfile = { navController.navigate("profile") },
+//                onNavigateToMore = { navController.navigate("cameraOption") }
+//            )
+        }
 
-                onNavigateToFaceDetection = { navController.navigate("faceDetection") },
-                onNavigateToObjectDetection = { navController.navigate("objectDetection") },
-                onNavigateToAnomalyDetection = { navController.navigate("anomalyDetection") }
+        composable("ActivityDetection") {
+//            ActivityDetectionScreen(
+//                onNavigateToHistory = { navController.navigate("history") },
+//                onNavigateToProfile = { navController.navigate("profile") },
+//                onNavigateToMore = { navController.navigate("cameraOption") }
+//            )
+        }
+
+        composable("cameraOption"){
+            CameraOptionScreen(
+                navController = navController,
+                onNavigateToFaceDetection = {
+                    navController.navigate("camera")
+                },
+
+                onNavigateToObjectDetection = {
+                    navController.navigate("ObjectDetection")
+                },
+
+                onNavigateToAnomalyDetection = {
+                    navController.navigate("AnomalyDetection")
+                },
+
+                onNavigateToVehicleDetection = {
+                    navController.navigate("VehicleDetection")
+                }
             )
         }
 
         composable("objectDetection") {
             Text("Object Detection Screen (Not Implemented Yet)")
         }
-        composable("faceDetection") {
-            FaceDetectionCameraScreen(
-                viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
+
+        composable("vehicleDetection") {
+            VehicleDetectionScreen(
+                viewModel = hiltViewModel<VehicleDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
+                onNavigateToAddFace = { navController.navigate("addFace") },
                 onNavigateToHistory = { navController.navigate("history") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onNavigateToMore = { navController.navigate("cameraOption") }
             )
         }
+
         composable("anomalyDetection") {
             Text("Anomaly Detection Screen (Not Implemented Yet)")
         }

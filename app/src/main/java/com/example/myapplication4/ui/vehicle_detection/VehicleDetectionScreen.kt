@@ -1,8 +1,11 @@
-package com.example.myapplication4.ui.face_detection
+package com.example.myapplication4.ui.vehicle_detection
 
+import android.net.Uri
 import android.util.Log
 import android.util.Size
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,45 +44,43 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavController
+import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
 import com.example.myapplication4.ui.components.BottomNavBar
-import com.example.myapplication4.ui.components.FaceDetectionOverlay
+import com.example.myapplication4.ui.components.VehicleDetectionOverlay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.example.myapplication4.ui.facedetection.FaceDetectionCameraViewModel
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
-fun FaceDetectionCameraScreen(
-    viewModel: FaceDetectionCameraViewModel = hiltViewModel(),
+fun VehicleDetectionScreen(
+    viewModel: VehicleDetectionViewModel = hiltViewModel(), // Menggunakan VehicleDetectionViewModel
     onNavigateToHistory: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToMore: () -> Unit // Ini adalah callback untuk navigasi ke CameraOptionScreen
+    onNavigateToMore: () -> Unit,
+    onNavigateToAddFace: () -> Unit
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
     val lensFacing by viewModel.lensFacing.collectAsState()
-    val detectedFaces by viewModel.detectedFaces.collectAsState()
-    val isFaceDetected by viewModel.isFaceDetected.collectAsState()
+    val detectionResult by viewModel.detectionResult.collectAsState()
     val previewView = remember {
         PreviewView(context).also {
             it.scaleType = PreviewView.ScaleType.FILL_CENTER
         }
     }
+    val imageCapture = remember { ImageCapture.Builder().build() }
     var imageWidth by remember { mutableStateOf(1) }
     var imageHeight by remember { mutableStateOf(1) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(isFaceDetected) {
-        if (isFaceDetected) {
-            snackbarHostState.showSnackbar(
-                message = "Wajah Terdeteksi!",
-                duration = SnackbarDuration.Short
-            )
-        }
-    }
+    // Inisialisasi model di ViewModel sudah dilakukan di init block-nya,
+    // jadi di sini tidak perlu memanggil setDetectionProcessor() lagi.
 
     LaunchedEffect(lensFacing) {
         val cameraProvider = withContext(Dispatchers.Main) {
@@ -109,21 +111,22 @@ fun FaceDetectionCameraScreen(
                 lifecycleOwner,
                 selector,
                 preview,
+                imageCapture,
                 imageAnalyzer
             )
         } catch (e: Exception) {
-            Log.e("FaceDetectionCameraScreen", "Camera binding failed", e)
+            Log.e("CameraScreen", "Camera binding failed", e)
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             BottomNavBar(
+                onAddClick = onNavigateToAddFace,
                 onHistoryClick = onNavigateToHistory,
-                onAddClick = { /* Tidak ada action spesifik untuk "Add Face" di sini */ },
                 onProfileClick = onNavigateToProfile,
-                onMoreClick = onNavigateToMore // Langsung panggil onNavigateToMore
+
+                onMoreClick = onNavigateToMore
             )
         },
         modifier = Modifier.background(color = Color.LightGray)
@@ -143,9 +146,9 @@ fun FaceDetectionCameraScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                FaceDetectionOverlay(
+                VehicleDetectionOverlay(
                     modifier = Modifier.fillMaxSize(),
-                    detectedFaces = detectedFaces,
+                    detectionResult = detectionResult,
                     imageWidth = imageWidth,
                     imageHeight = imageHeight,
                     isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
@@ -162,6 +165,48 @@ fun FaceDetectionCameraScreen(
                     Icon(
                         imageVector = Icons.Default.Cameraswitch,
                         contentDescription = "Switch Camera"
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        val photoFile = File(
+                            context.externalMediaDirs.firstOrNull(),
+                            "${SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(System.currentTimeMillis())}.jpg"
+                        )
+                        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+
+                        imageCapture.takePicture(
+                            outputOptions,
+                            ContextCompat.getMainExecutor(context),
+                            object : ImageCapture.OnImageSavedCallback {
+                                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                                    val savedUri = outputFileResults.savedUri ?: Uri.fromFile(photoFile)
+                                    Log.d("CameraScreen", "Photo capture succeeded: $savedUri")
+                                }
+
+                                override fun onError(exception: ImageCaptureException) {
+                                    Log.e("CameraScreen", "Photo capture failed: ${exception.message}", exception)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Gagal mengambil gambar: ${exception.message}",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                        .size(64.dp)
+                        .background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(32.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PhotoCamera,
+                        contentDescription = "Take Picture",
+                        tint = Color.White
                     )
                 }
             }
