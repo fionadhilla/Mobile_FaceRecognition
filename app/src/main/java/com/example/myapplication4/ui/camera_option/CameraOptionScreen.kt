@@ -18,6 +18,7 @@ fun CameraOptionScreen(
     onNavigateToObjectDetection: () -> Unit,
     onNavigateToVehicleDetection: () -> Unit,
     onNavigateToAnomalyDetection: () -> Unit,
+    onNavigateToCrowdDetection: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -83,6 +84,16 @@ fun CameraOptionScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
+
+            // Tombol Crowd Detection
+            Button(
+                onClick = onNavigateToCrowdDetection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Deteksi Keramaian")
+            }
         }
     }
 }
@@ -95,6 +106,7 @@ fun PreviewCameraOptionScreen() {
         onNavigateToFaceDetection = {},
         onNavigateToObjectDetection = {},
         onNavigateToVehicleDetection = {},
-        onNavigateToAnomalyDetection = {}
+        onNavigateToAnomalyDetection = {},
+        onNavigateToCrowdDetection = {}
     )
 }

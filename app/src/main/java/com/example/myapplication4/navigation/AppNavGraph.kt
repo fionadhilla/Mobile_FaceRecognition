@@ -10,6 +10,8 @@ import androidx.navigation.compose.composable
 import com.example.myapplication4.ui.addface.AddFaceScreen
 import com.example.myapplication4.ui.camera.CameraScreen
 import com.example.myapplication4.ui.camera_option.CameraOptionScreen
+import com.example.myapplication4.ui.crowd_detection.CrowdDetectionCameraScreen
+import com.example.myapplication4.ui.crowd_detection.CrowdDetectionViewModel
 import com.example.myapplication4.ui.edit_profile.EditProfileScreen
 import com.example.myapplication4.ui.login.LoginScreen
 import com.example.myapplication4.ui.login.LoginStateViewModel
@@ -108,6 +110,10 @@ fun AppNavGraph(
 
                 onNavigateToVehicleDetection = {
                     navController.navigate("VehicleDetection")
+                },
+
+                onNavigateToCrowdDetection = {
+                    navController.navigate("CrowdDetection")
                 }
             )
         }
@@ -119,6 +125,16 @@ fun AppNavGraph(
         composable("vehicleDetection") {
             VehicleDetectionScreen(
                 viewModel = hiltViewModel<VehicleDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
+                onNavigateToAddFace = { navController.navigate("addFace") },
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
+        }
+
+        composable("CrowdDetection") {
+            CrowdDetectionCameraScreen(
+                crowdDetectionViewModel  = hiltViewModel<CrowdDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
                 onNavigateToAddFace = { navController.navigate("addFace") },
                 onNavigateToHistory = { navController.navigate("history") },
                 onNavigateToProfile = { navController.navigate("profile") },

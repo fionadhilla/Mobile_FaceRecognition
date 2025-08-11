@@ -11,15 +11,16 @@ import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.IOException
 
+
 // Antarmuka generik untuk semua prosesor model
-interface ModelProcessor {
+interface ModelProcessor<T> {
     fun initialize(context: Context)
     fun process(bitmap: Bitmap, rotationDegrees: Int): DetectionResult?
     fun close()
 }
 
 // Implementasi untuk deteksi kendaraan
-class VehicleDetectionProcessor(private val context: Context) : ModelProcessor {
+class VehicleDetectionProcessor(private val context: Context) : ModelProcessor<Any?> {
     private var interpreter: Interpreter? = null
     private val modelFileName = "vehicle_detection.tflite" // Ganti dengan nama file TFLite Anda
     private val inputSize = 300 // Ukuran input yang diharapkan oleh model, sesuaikan
