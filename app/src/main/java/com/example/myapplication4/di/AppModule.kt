@@ -32,6 +32,7 @@ import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.modelLoad.YoloV8PeopleDetector
 import com.example.myapplication4.modelLoad.YoloV6ActivityDetector
 import com.example.myapplication4.modelLoad.GestureDetector
+import com.example.myapplication4.modelLoad.EmotionDetector
 
 import dagger.Module
 import dagger.Provides
@@ -201,5 +202,11 @@ object AppModule {
     @Provides
     fun provideGestureDetector(@ApplicationContext context: Context): GestureDetector {
         return GestureDetector(context)
+    }
+
+    @Singleton
+    @Provides
+    fun provideEmotionDetector(@ApplicationContext context: Context): EmotionDetector {
+        return EmotionDetector(context)
     }
 }

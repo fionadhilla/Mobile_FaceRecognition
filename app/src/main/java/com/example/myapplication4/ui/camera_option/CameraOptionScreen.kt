@@ -21,7 +21,8 @@ fun CameraOptionScreen(
     onNavigateToFaceDetection: () -> Unit,
     onNavigateToPeopleCounting: () -> Unit,
     onNavigateToActivityDetection: () -> Unit,
-    onNavigateToGestureDetection: () -> Unit
+    onNavigateToGestureDetection: () -> Unit,
+    onNavigateToEmotionDetection: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -89,6 +90,13 @@ fun CameraOptionScreen(
         DetectionButton(
             text = "Gesture Detection",
             onClick = onNavigateToGestureDetection
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "Emotion Detection",
+            onClick = onNavigateToEmotionDetection
         )
     }
 }
