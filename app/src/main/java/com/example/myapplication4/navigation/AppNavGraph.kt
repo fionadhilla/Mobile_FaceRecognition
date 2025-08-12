@@ -7,8 +7,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+
 import com.example.myapplication4.ui.addface.AddFaceScreen
 import com.example.myapplication4.ui.camera.CameraScreen
+import com.example.myapplication4.ui.camera.CameraViewModel
 import com.example.myapplication4.ui.camera_option.CameraOptionScreen
 import com.example.myapplication4.ui.edit_profile.EditProfileScreen
 import com.example.myapplication4.ui.login.LoginScreen
@@ -17,6 +19,8 @@ import com.example.myapplication4.ui.notifikasi.HistoryScreen
 import com.example.myapplication4.ui.peopleCount.PeopleCountCameraScreen
 import com.example.myapplication4.ui.profile.ProfileScreen
 import com.example.myapplication4.ui.activityDetection.ActivityDetectionScreen
+import com.example.myapplication4.ui.gestureDetection.GestureDetectionCameraScreen
+
 
 @Composable
 fun AppNavGraph(
@@ -40,12 +44,13 @@ fun AppNavGraph(
             )
         }
         composable("camera") {
+            val cameraViewModel = hiltViewModel<CameraViewModel>(viewModelStoreOwner = activityViewModelStoreOwner)
             CameraScreen(
-                viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
+                viewModel = cameraViewModel,
                 onNavigateToHistory = { navController.navigate("history") },
                 onNavigateToAddFace = { navController.navigate("addFace") },
                 onNavigateToProfile = { navController.navigate("profile") },
-                onNavigateToMore = { navController.navigate("cameraOption") }
+                onNavigateToMore = { navController.navigate("cameraOption") },
             )
         }
 
@@ -104,8 +109,20 @@ fun AppNavGraph(
 
                onNavigateToActivityDetection = {
                    navController.navigate("ActivityDetection")
+               },
+
+               onNavigateToGestureDetection = {
+                   navController.navigate("gestureDetection")
                }
            )
+        }
+
+        composable("gestureDetection") {
+            GestureDetectionCameraScreen(
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
         }
 
         composable("objectDetection") {

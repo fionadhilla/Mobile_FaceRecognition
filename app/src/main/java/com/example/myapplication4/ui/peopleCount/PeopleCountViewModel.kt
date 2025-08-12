@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.util.Log
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 import javax.inject.Inject
@@ -39,16 +40,21 @@ class PeopleCountViewModel @Inject constructor(
     fun startCameraAnalysis(imageAnalysis: ImageAnalysis) {
         imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
             viewModelScope.launch {
-                val bitmap = withContext(Dispatchers.Default) {
-                    imageProxy.toBitmapWithoutConverter()
-                }
-
-                if (bitmap != null) {
-                    val results = withContext(Dispatchers.Default) {
-                        peopleDetector.analyzeFrame(bitmap)
+                try {
+                    val bitmap = withContext(Dispatchers.Default) {
+                        imageProxy.toBitmapWithoutConverter()
                     }
-                    _detectedPeople.value = results
-                    _peopleCount.value = results.size
+                    if (bitmap != null) {
+                        val results = withContext(Dispatchers.Default) {
+                            peopleDetector.analyzeFrame(bitmap)
+                        }
+                        _detectedPeople.value = results
+                        _peopleCount.value = results.size
+                    }
+                } catch (e: Exception) {
+                    Log.e("PeopleCountViewModel", "Error processing image: ${e.message}")
+                } finally {
+                    imageProxy.close()
                 }
             }
         }

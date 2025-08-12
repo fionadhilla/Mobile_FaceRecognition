@@ -25,9 +25,6 @@
             android:name=".ui.edit_profile.edit_profile"
             android:exported="false" />
         <activity
-            android:name=".ui.attendace_confirmation.attendance_confirmation"
-            android:exported="false" />
-        <activity
             android:name=".ui.notifikasi.Notifikasi"
             android:exported="false" />
         <activity

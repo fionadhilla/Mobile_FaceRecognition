@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.litert.metadata)
     implementation(libs.litert)
     implementation(libs.litert.gpu)
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"

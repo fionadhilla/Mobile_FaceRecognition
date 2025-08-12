@@ -20,7 +20,8 @@ fun CameraOptionScreen(
     navController: NavController,
     onNavigateToFaceDetection: () -> Unit,
     onNavigateToPeopleCounting: () -> Unit,
-    onNavigateToActivityDetection: () -> Unit
+    onNavigateToActivityDetection: () -> Unit,
+    onNavigateToGestureDetection: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -81,6 +82,13 @@ fun CameraOptionScreen(
         DetectionButton(
             text = "Activity Detection",
             onClick = onNavigateToActivityDetection
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "Gesture Detection",
+            onClick = onNavigateToGestureDetection
         )
     }
 }

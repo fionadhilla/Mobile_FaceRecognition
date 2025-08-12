@@ -31,33 +31,22 @@ private fun calculateIoU(rectA: RectF, rectB: RectF): Float {
     return intersectionArea / (areaA + areaB - intersectionArea)
 }
 
-/**
- * Menerapkan Non-Maximum Suppression (NMS) untuk menghilangkan bounding box yang tumpang tindih.
- */
-fun applyNMS(boxes: List<BoundingBox>, iouThreshold: Float = 0.45f): List<BoundingBox> {
-    if (boxes.isEmpty()) return emptyList()
+fun applyNMS(boxes: List<BoundingBox>, iouThreshold: Float): List<BoundingBox> {
+    val sortedBoxes = boxes.sortedByDescending { it.confidence }.toMutableList()
+    val nmsBoxes = mutableListOf<BoundingBox>()
 
-    val sortedBoxes = boxes.sortedByDescending { it.confidence }
-    val result = mutableListOf<BoundingBox>()
-    val suppressed = BooleanArray(sortedBoxes.size) { false }
+    while (sortedBoxes.isNotEmpty()) {
+        val first = sortedBoxes.removeAt(0)
+        nmsBoxes.add(first)
 
-    for (i in sortedBoxes.indices) {
-        if (suppressed[i]) continue
-
-        val boxA = sortedBoxes[i]
-        result.add(boxA)
-
-        for (j in i + 1 until sortedBoxes.size) {
-            if (suppressed[j]) continue
-
-            val boxB = sortedBoxes[j]
-            val iou = calculateIoU(boxA.rect, boxB.rect)
-
-            if (iou > iouThreshold) {
-                suppressed[j] = true
+        val iterator = sortedBoxes.iterator()
+        while (iterator.hasNext()) {
+            val nextBox = iterator.next()
+            if (calculateIoU(first.rect, nextBox.rect) >= iouThreshold) {
+                iterator.remove()
             }
         }
     }
-    return result
+    return nmsBoxes
 }
 

@@ -4,53 +4,57 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.RectF
 import android.util.Log
+import com.example.myapplication4.data.model.ActivityDetectionResult
 import com.example.myapplication4.domain.utils.BoundingBox
 import com.example.myapplication4.domain.utils.applyNMS
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.gpu.GpuDelegate
 import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
-import org.tensorflow.lite.support.common.ops.NormalizeOp
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class YoloV8PeopleDetector @Inject constructor(
-    context: Context
+class GestureDetector @Inject constructor(
+    private val context: Context
 ) {
 
     private var interpreter: Interpreter? = null
     private val inputSize = 640
-    private val outputSize = 84
     private val numBoxes = 8400
-    private val personClassId = 0
-    private val scoreThreshold = 0.5f
+    private val numClasses = 3
 
-    init {
+    private val scoreThreshold = 0.7f
+
+    private val labels = listOf(
+        "crossing-arms", "holding-chin", "raising-hand"
+    )
+
+    fun loadModel() {
         try {
-            val modelFile = FileUtil.loadMappedFile(context, "yolov8s_float32.tflite")
+            val modelFile = FileUtil.loadMappedFile(context, "gesture_detection_yolov11n_VER4_float32.tflite")
             val options = Interpreter.Options()
-            options.setNumThreads(4)
+            val gpuDelegate = GpuDelegate()
+            options.addDelegate(gpuDelegate)
             interpreter = Interpreter(modelFile, options)
-            Log.d("YoloV8Detector", "Model TFLite YoloV8 berhasil dimuat.")
+            Log.d("GestureDetector", "Model TFLite YoloV11 berhasil dimuat.")
         } catch (e: Exception) {
-            Log.e("YoloV8Detector", "Gagal memuat model TFLite: ${e.message}")
+            Log.e("GestureDetector", "Gagal memuat model TFLite: ${e.message}")
             interpreter = null
         }
     }
 
-    fun analyzeFrame(bitmap: Bitmap): List<BoundingBox> {
+    fun detect(bitmap: Bitmap): List<ActivityDetectionResult> {
         if (interpreter == null) {
+            Log.e("GestureDetector", "Interpreter is not initialized.")
             return emptyList()
         }
-
         val tensorImage = preprocessImage(bitmap)
-        val outputBuffer = Array(1) { Array(outputSize) { FloatArray(numBoxes) } }
-
+        val outputBuffer = Array(1) { Array(7) { FloatArray(numBoxes) } }
         interpreter?.run(tensorImage.buffer, outputBuffer)
-
         return postprocessResults(outputBuffer, bitmap.width, bitmap.height)
     }
 
@@ -59,7 +63,6 @@ class YoloV8PeopleDetector @Inject constructor(
         tensorImage.load(bitmap)
         val imageProcessor = ImageProcessor.Builder()
             .add(ResizeOp(inputSize, inputSize, ResizeOp.ResizeMethod.BILINEAR))
-            .add(NormalizeOp(0f, 255f))
             .build()
         return imageProcessor.process(tensorImage)
     }
@@ -68,36 +71,37 @@ class YoloV8PeopleDetector @Inject constructor(
         outputBuffer: Array<Array<FloatArray>>,
         originalWidth: Int,
         originalHeight: Int
-    ): List<BoundingBox> {
-        val rawBoxes = mutableListOf<BoundingBox>()
+    ): List<ActivityDetectionResult> {
+        val boxes = mutableListOf<BoundingBox>()
         val output = outputBuffer[0]
-
         val xScale = originalWidth.toFloat() / inputSize.toFloat()
         val yScale = originalHeight.toFloat() / inputSize.toFloat()
+        val numDetections = output[0].size
 
-        for (i in 0 until numBoxes) {
-            val x_center = output[0][i]
-            val y_center = output[1][i]
-            val width = output[2][i]
-            val height = output[3][i]
-
+        for (i in 0 until numDetections) {
             var maxConfidence = 0f
             var maxClassId = -1
-            for (j in 4 until outputSize) {
-                val confidence = output[j][i]
+
+            for (j in 0 until numClasses) {
+                val confidence = output[4 + j][i]
                 if (confidence > maxConfidence) {
                     maxConfidence = confidence
-                    maxClassId = j - 4
+                    maxClassId = j
                 }
             }
 
-            if (maxConfidence > scoreThreshold && maxClassId == personClassId) {
+            if (maxConfidence > scoreThreshold) {
+                val x_center = output[0][i]
+                val y_center = output[1][i]
+                val width = output[2][i]
+                val height = output[3][i]
+
                 val left = (x_center - width / 2f) * xScale
                 val top = (y_center - height / 2f) * yScale
                 val right = (x_center + width / 2f) * xScale
                 val bottom = (y_center + height / 2f) * yScale
 
-                rawBoxes.add(
+                boxes.add(
                     BoundingBox(
                         rect = RectF(left, top, right, bottom),
                         confidence = maxConfidence,
@@ -106,7 +110,18 @@ class YoloV8PeopleDetector @Inject constructor(
                 )
             }
         }
-        // Terapkan NMS untuk menghilangkan duplikat
-        return applyNMS(rawBoxes, iouThreshold = 0.45f)
+
+        val nmsBoxes = applyNMS(boxes, iouThreshold = 0.45f)
+        return nmsBoxes.map { nmsBox ->
+            ActivityDetectionResult(
+                boundingBox = nmsBox.rect,
+                label = labels[nmsBox.classId],
+                score = nmsBox.confidence
+            )
+        }
+    }
+
+    fun close() {
+        interpreter?.close()
     }
 }

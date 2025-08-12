@@ -33,7 +33,7 @@ class YoloV6ActivityDetector @Inject constructor(
         "stand", "walk", "interact", "run", "sit", "steal"
     )
 
-    suspend fun loadModel() {
+    fun loadModel() {
         try {
             val modelFile = FileUtil.loadMappedFile(context, "Activity_Detection_yolov12_VER6_float32.tflite")
             val options = Interpreter.Options()

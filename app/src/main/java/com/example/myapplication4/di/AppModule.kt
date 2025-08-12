@@ -21,6 +21,8 @@ import com.example.myapplication4.domain.usecase.VerifyFaceUseCase
 import com.example.myapplication4.domain.usecase.SyncOfflineFacesUseCase
 import okhttp3.OkHttpClient
 import com.google.gson.Gson
+import com.google.mediapipe.tasks.vision.objectdetector.ObjectDetectorResult
+
 import com.example.myapplication4.data.api.WebSocketClient
 import com.example.myapplication4.data.repository.FaceRepository
 import com.example.myapplication4.data.repository.FaceRepositoryImpl
@@ -29,6 +31,7 @@ import com.example.myapplication4.modelLoad.AddFaceDetector
 import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.modelLoad.YoloV8PeopleDetector
 import com.example.myapplication4.modelLoad.YoloV6ActivityDetector
+import com.example.myapplication4.modelLoad.GestureDetector
 
 import dagger.Module
 import dagger.Provides
@@ -121,7 +124,7 @@ object AppModule {
     @Singleton
     fun provideWebSocketClient(okHttpClient: OkHttpClient, gson: Gson): WebSocketClient {
         val websocketClient = WebSocketClient(okHttpClient, gson)
-        websocketClient.connect("ws://10.60.225.255:3000")
+        websocketClient.connect("ws://192.168.100.47:3000")
         return websocketClient
     }
 
@@ -192,5 +195,11 @@ object AppModule {
     @Singleton
     fun provideYoloV6ActivityDetector(@ApplicationContext context: Context): YoloV6ActivityDetector{
         return YoloV6ActivityDetector(context)
+    }
+
+    @Singleton
+    @Provides
+    fun provideGestureDetector(@ApplicationContext context: Context): GestureDetector {
+        return GestureDetector(context)
     }
 }
