@@ -9,12 +9,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import com.example.myapplication4.ui.login.LoginStateViewModel
+import com.example.myapplication4.data.api.ApiResult
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val loginStateViewModel: LoginStateViewModel
 ) : ViewModel() {
+    private val _id = MutableStateFlow("")
+    val id: StateFlow<String> = _id
+
     private val _email = MutableStateFlow("")
     val email: StateFlow<String> = _email
 
@@ -52,11 +57,15 @@ class LoginViewModel @Inject constructor(
 
             result.onSuccess { token ->
                 _jwtToken.value = token
-                loginStateViewModel.login()
+
+                val adminId = _id.value
+
+                loginStateViewModel.setLoggedInAdmin(adminId)
+
                 onSuccess()
                 Log.d("LoginViewModel", "Login successful. JWT Token: $token")
             }.onFailure { exception ->
-                _loginError.value = exception.message ?: "Login failed"
+                _loginError.value = exception.message ?: "Login gagal"
                 Log.e("LoginViewModel", "Login failed: ${_loginError.value}")
             }
             _isLoggingIn.value = false

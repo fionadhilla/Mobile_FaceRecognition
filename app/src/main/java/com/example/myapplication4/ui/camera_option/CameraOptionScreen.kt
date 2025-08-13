@@ -1,5 +1,7 @@
 package com.example.myapplication4.ui.camera_option
 
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,61 +21,94 @@ import androidx.navigation.NavController
 fun CameraOptionScreen(
     navController: NavController,
     onNavigateToFaceDetection: () -> Unit,
-    onNavigateToPeopleCounting: () -> Unit
+    onNavigateToPeopleCounting: () -> Unit,
+    onNavigateToObjectDetection: () -> Unit,
+    onNavigateToVehicleDetection: () -> Unit,
+    onNavigateToAnomalyDetection: () -> Unit,
+    onNavigateToCrowdDetection: () -> Unit,
+
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 24.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier
-                    .size(32.dp)
-                    .clickable { navController.popBackStack() }
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = "More Detection Option",
-                style = MaterialTheme.typography.headlineMedium
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Pilih Mode Kamera") }
             )
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
 
-        Spacer(modifier = Modifier.height(40.dp))
+            // Tombol Face Recognition
+            Button(
+                onClick = onNavigateToFaceDetection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Deteksi Wajah")
+            }
 
-        // Face Detection
-        DetectionButton(
-            text = "Face Detection",
-            onClick = onNavigateToFaceDetection
-        )
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
+            // Tombol Object Detection
+            Button(
+                onClick = onNavigateToObjectDetection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Deteksi Objek")
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // Vehicle Detection
-        DetectionButton(
-            text = "Vehicle Detection",
-            onClick = { navController.navigate("objectDetection") }
-        )
+            DetectionButton(
+                text = "People Counting",
+                onClick = onNavigateToPeopleCounting
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Anomaly Detection
-        DetectionButton(
-            text = "Anomaly Detection",
-            onClick = { navController.navigate("anomalyDetection") }
-        )
+            Button(
+                onClick = onNavigateToVehicleDetection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Deteksi Kendaraan")
+            }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        DetectionButton(
-            text = "People Counting",
-            onClick = onNavigateToPeopleCounting
-        )
+            // Tombol Anomaly Detection
+            Button(
+                onClick = onNavigateToAnomalyDetection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Deteksi Anomali")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Tombol Crowd Detection
+            Button(
+                onClick = onNavigateToCrowdDetection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Deteksi Keramaian")
+            }
+        }
     }
 }
 

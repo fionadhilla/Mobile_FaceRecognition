@@ -17,7 +17,7 @@ import android.graphics.Matrix
 import javax.inject.Inject
 
 import com.example.myapplication4.domain.utils.ImageCropper
-import com.example.myapplication4.face.MediaPipeFaceDetector
+import com.example.myapplication4.modelLoad.MediaPipeFaceDetector
 import com.example.myapplication4.face.FaceEmbedder
 import com.example.myapplication4.domain.usecase.VerifyFaceUseCase
 import com.example.myapplication4.data.model.FaceVerificationResult

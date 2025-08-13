@@ -1,3 +1,4 @@
+// In app/src/main/java/com/example/myapplication4/ui/components/BottomNavBar.kt
 package com.example.myapplication4.ui.components
 
 import androidx.compose.foundation.background
@@ -21,12 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun BottomNavBar(
@@ -54,7 +52,7 @@ fun BottomNavBar(
                 IconButton(
                     onClick = onHistoryClick,
                     modifier = Modifier
-                        .padding(horizontal = 20.dp)
+                        .padding(horizontal = 5.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.List,
@@ -102,3 +100,15 @@ fun BottomNavBar(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun BottomNavBarPreview() {
+    BottomNavBar(
+        onHistoryClick = {},
+        onAddClick = {},
+        onProfileClick = {},
+        onMoreClick = {}
+    )
+}
+

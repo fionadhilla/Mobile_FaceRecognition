@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
-    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -34,6 +33,11 @@ android {
             )
         }
     }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -47,10 +51,6 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.kotlin.get()
-    }
-
     packaging {
         resources {
             aaptOptions {
@@ -58,22 +58,30 @@ android {
             }
         }
     }
+
+    kapt {
+        includeCompileClasspath = false
+    }
 }
 
 dependencies {
     implementation(libs.play.services.mlkit.face.detection) {
         exclude(group = "org.tensorflow", module = "tensorflow-lite-api")
         exclude(group = "com.google.android.gms", module = "play-services-tflite-java")
-    }
 
+    }
+    implementation ("org.tensorflow:tensorflow-lite:2.15.0") // Atau versi stabil terbaru
+    implementation ("org.tensorflow:tensorflow-lite-gpu:2.17.0") // Opsional, untuk akselerasi GPU
     implementation(libs.androidx.media3.common.ktx)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.common)
     implementation(libs.androidx.hilt.work)
     implementation("androidx.startup:startup-runtime:1.2.0")
-    implementation(libs.litert.support.api)
-    implementation(libs.litert.metadata)
     implementation(libs.litert)
+    implementation(libs.litert.support.api)
+//    implementation(libs.litert.support.api)
+//    implementation(libs.litert.metadata)
+//    implementation(libs.litert)
 
     // Definisi Value / Variabel
     val lifecycle_version = "2.2.0"
@@ -123,14 +131,15 @@ dependencies {
     implementation("androidx.camera:camera-extensions:${camerax_version}")
 
     // OFFLINE STORAGE
-    implementation(libs.androidx.room.runtime)
-    kapt(libs.androidx.room.compiler)
-    implementation(libs.androidx.room.ktx)
+    implementation(libs.room.runtime)
+    kapt(libs.room.compiler)
+    implementation(libs.room.ktx)
 
     // WEBSOCKET OKHTTP
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // COROUTINE
+    //implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 

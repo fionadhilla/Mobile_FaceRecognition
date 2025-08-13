@@ -211,10 +211,10 @@ fun AddFaceScreen(
 
             if (recordingState == RecordingState.DONE) {
                 Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp)
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),

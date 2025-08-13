@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/myapplication4/ui/edit_profile/EditProfileScreen.kt
 package com.example.myapplication4.ui.edit_profile
 
 import androidx.compose.foundation.layout.*
@@ -7,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.myapplication4.ui.components.TopBar
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
@@ -15,7 +15,7 @@ fun EditProfileScreen(
     viewModel: EditProfileViewModel = hiltViewModel()
 ) {
     // Mengubah fullName menjadi name
-    val name by viewModel.name.collectAsState()
+    val name by viewModel.name.collectAsState() // Menggunakan viewModel.name
     val email by viewModel.email.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val updateSuccess by viewModel.updateSuccess.collectAsState()
@@ -36,9 +36,10 @@ fun EditProfileScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // TextField untuk Nama Lengkap
             OutlinedTextField(
-                value = name,
-                onValueChange = { viewModel.onNameChange(it) },
+                value = name, // Menggunakan 'name'
+                onValueChange = { viewModel.onNameChange(it) }, // Menggunakan onNameChange
                 label = { Text("Nama Lengkap") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true

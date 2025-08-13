@@ -9,6 +9,7 @@ import javax.inject.Inject
 class GetUserProfileUseCase @Inject constructor(
     private val repository: UserProfileRepository
 ) {
+    // Tambahkan modifier 'suspend' di sini
     operator suspend fun invoke(adminId: String): Flow<Admin> {
         return repository.getProfile(adminId).map { result ->
             result.getOrThrow()

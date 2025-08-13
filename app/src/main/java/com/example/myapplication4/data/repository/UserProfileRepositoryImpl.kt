@@ -1,7 +1,7 @@
 package com.example.myapplication4.data.repository
 
 import android.util.Log
-import com.example.myapplication4.data.api.WebSocketClient
+import com.example.myapplication4.data.api.WebSocketAuthService
 import com.example.myapplication4.data.model.Admin
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
 
 class UserProfileRepositoryImpl @Inject constructor(
-    private val webSocketAuthService: WebSocketClient
+    private val webSocketAuthService: WebSocketAuthService
 ) : UserProfileRepository {
 
     override suspend fun getProfile(adminId: String): Flow<Result<Admin>> = callbackFlow {
@@ -25,6 +25,7 @@ class UserProfileRepositoryImpl @Inject constructor(
         }
         webSocketAuthService.requestProfile(adminId)
         awaitClose {
+            // Optional: Clean up listeners or resources if needed when the flow is closed
             webSocketAuthService.onProfileReceived = null
         }
     }

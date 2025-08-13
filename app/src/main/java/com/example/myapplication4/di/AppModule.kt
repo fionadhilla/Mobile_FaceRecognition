@@ -1,9 +1,7 @@
 package com.example.myapplication4.di
 
 import android.content.Context
-import com.example.myapplication4.data.database.AppDatabase
-import com.example.myapplication4.data.database.dao.PendingSyncDao
-import com.example.myapplication4.data.database.dao.UserDao
+import com.example.myapplication4.data.api.WebSocketAuthService
 import com.example.myapplication4.data.repository.HistoryRepository
 import com.example.myapplication4.data.repository.HistoryRepositoryImpl
 import com.example.myapplication4.data.repository.LoginRepository
@@ -17,6 +15,9 @@ import com.example.myapplication4.domain.usecase.UpdateUserProfileUseCase
 import com.example.myapplication4.face.FaceEmbedder
 import com.example.myapplication4.face.FaceNetModel
 import androidx.room.Room
+import com.example.myapplication4.data.database.AppDatabase // Tambahkan ini
+import com.example.myapplication4.data.database.dao.PendingSyncDao // Tambahkan ini
+import com.example.myapplication4.data.database.dao.UserDao // Tambahkan ini
 import com.example.myapplication4.domain.usecase.VerifyFaceUseCase
 import com.example.myapplication4.domain.usecase.SyncOfflineFacesUseCase
 import okhttp3.OkHttpClient
@@ -42,8 +43,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLoginRepository(WebSocketClient: WebSocketClient): LoginRepository {
-        return LoginRepositoryImpl(WebSocketClient)
+    fun provideWebSocketAuthService(): WebSocketAuthService {
+        return WebSocketAuthService()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLoginRepository(webSocketAuthService: WebSocketAuthService): LoginRepository {
+        return LoginRepositoryImpl(webSocketAuthService)
     }
 
     @Provides
@@ -65,8 +72,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideUserProfileRepository(
-        webSocketAuthService: WebSocketClient
+        // Tambahkan parameter webSocketAuthService di sini
+        webSocketAuthService: WebSocketAuthService
     ): UserProfileRepository {
+        // Sekarang, teruskan webSocketAuthService ke konstruktor UserProfileRepositoryImpl
         return UserProfileRepositoryImpl(webSocketAuthService)
     }
 
