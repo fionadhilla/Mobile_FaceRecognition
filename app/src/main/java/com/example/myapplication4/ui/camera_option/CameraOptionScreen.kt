@@ -22,11 +22,13 @@ fun CameraOptionScreen(
     navController: NavController,
     onNavigateToFaceDetection: () -> Unit,
     onNavigateToPeopleCounting: () -> Unit,
+    onNavigateToActivityDetection: () -> Unit,
+    onNavigateToGestureDetection: () -> Unit,
+    onNavigateToEmotionDetection: () -> Unit
     onNavigateToObjectDetection: () -> Unit,
     onNavigateToVehicleDetection: () -> Unit,
     onNavigateToAnomalyDetection: () -> Unit,
     onNavigateToCrowdDetection: () -> Unit,
-
 ) {
     Scaffold(
         topBar = {
@@ -45,15 +47,10 @@ fun CameraOptionScreen(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Tombol Face Recognition
-            Button(
-                onClick = onNavigateToFaceDetection,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                Text("Deteksi Wajah")
-            }
+            DetectionButton(
+              text = "Face Detection",
+              onClick = onNavigateToFaceDetection
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -66,13 +63,7 @@ fun CameraOptionScreen(
             ) {
                 Text("Deteksi Objek")
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-
-            DetectionButton(
-                text = "People Counting",
-                onClick = onNavigateToPeopleCounting
-            )
+   
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -87,7 +78,7 @@ fun CameraOptionScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tombol Anomaly Detection
+        
             Button(
                 onClick = onNavigateToAnomalyDetection,
                 modifier = Modifier
@@ -97,9 +88,33 @@ fun CameraOptionScreen(
                 Text("Deteksi Anomali")
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+        DetectionButton(
+            text = "People Counting",
+            onClick = onNavigateToPeopleCounting
+        )
 
-            // Tombol Crowd Detection
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "Activity Detection",
+            onClick = onNavigateToActivityDetection
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "Gesture Detection",
+            onClick = onNavigateToGestureDetection
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "Emotion Detection",
+            onClick = onNavigateToEmotionDetection
+        )
+        
+        Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = onNavigateToCrowdDetection,
                 modifier = Modifier

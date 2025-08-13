@@ -7,8 +7,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+
 import com.example.myapplication4.ui.addface.AddFaceScreen
 import com.example.myapplication4.ui.camera.CameraScreen
+import com.example.myapplication4.ui.camera.CameraViewModel
 import com.example.myapplication4.ui.camera_option.CameraOptionScreen
 import com.example.myapplication4.ui.crowd_detection.CrowdDetectionCameraScreen
 import com.example.myapplication4.ui.crowd_detection.CrowdDetectionViewModel
@@ -18,6 +20,9 @@ import com.example.myapplication4.ui.login.LoginStateViewModel
 import com.example.myapplication4.ui.notifikasi.HistoryScreen
 import com.example.myapplication4.ui.peopleCount.PeopleCountCameraScreen
 import com.example.myapplication4.ui.profile.ProfileScreen
+import com.example.myapplication4.ui.activityDetection.ActivityDetectionScreen
+import com.example.myapplication4.ui.gestureDetection.GestureDetectionCameraScreen
+import com.example.myapplication4.ui.emotionDetection.EmotionDetectionScreen
 import com.example.myapplication4.ui.vehicle_detection.VehicleDetectionScreen
 import com.example.myapplication4.ui.vehicle_detection.VehicleDetectionViewModel
 
@@ -43,12 +48,13 @@ fun AppNavGraph(
             )
         }
         composable("camera") {
+            val cameraViewModel = hiltViewModel<CameraViewModel>(viewModelStoreOwner = activityViewModelStoreOwner)
             CameraScreen(
-                viewModel = hiltViewModel(viewModelStoreOwner = activityViewModelStoreOwner),
+                viewModel = cameraViewModel,
                 onNavigateToHistory = { navController.navigate("history") },
                 onNavigateToAddFace = { navController.navigate("addFace") },
                 onNavigateToProfile = { navController.navigate("profile") },
-                onNavigateToMore = { navController.navigate("cameraOption") }
+                onNavigateToMore = { navController.navigate("cameraOption") },
             )
         }
 
@@ -94,13 +100,51 @@ fun AppNavGraph(
            )
         }
 
-        composable("cameraOption"){
-            CameraOptionScreen(
-                navController = navController,
-                onNavigateToFaceDetection = {
-                    navController.navigate("camera")
-                },
 
+        composable("objectDetection") {
+            Text("Object Detection Screen (Not Implemented Yet)")
+        }
+
+        composable("vehicleDetection") {
+            VehicleDetectionScreen(
+                viewModel = hiltViewModel<VehicleDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
+                onNavigateToAddFace = { navController.navigate("addFace") },
+            AddFaceScreen(
+                navController = navController,
+                onNavigateToCamera = {navController.navigate("camera")}
+            )
+        }
+        
+        composable("CrowdDetection") {
+            CrowdDetectionCameraScreen(
+                crowdDetectionViewModel  = hiltViewModel<CrowdDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
+                onNavigateToAddFace = { navController.navigate("addFace") },
+            )
+        }
+
+        composable("cameraOption"){
+           CameraOptionScreen(
+               navController = navController,
+               onNavigateToFaceDetection = {
+                   navController.navigate("camera")
+               },
+
+               onNavigateToPeopleCounting = {
+                   navController.navigate("peopleCount")
+               },
+
+               onNavigateToActivityDetection = {
+                   navController.navigate("ActivityDetection")
+               },
+
+               onNavigateToGestureDetection = {
+                   navController.navigate("gestureDetection")
+               },
+
+               onNavigateToEmotionDetection = {
+                   navController.navigate("emotionDetection")
+               },
+             
                 onNavigateToObjectDetection = {
                     navController.navigate("ObjectDetection")
                 },
@@ -116,52 +160,23 @@ fun AppNavGraph(
                 onNavigateToCrowdDetection = {
                     navController.navigate("CrowdDetection")
                 }
-            )
-        }
-
-        composable("objectDetection") {
-            Text("Object Detection Screen (Not Implemented Yet)")
-        }
-
-        composable("vehicleDetection") {
-            VehicleDetectionScreen(
-                viewModel = hiltViewModel<VehicleDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
-                onNavigateToAddFace = { navController.navigate("addFace") },
-            AddFaceScreen(
-                navController = navController,
-                onNavigateToCamera = {navController.navigate("camera")}
-            )
-        }
-
-        composable("peopleCount") {
-            PeopleCountCameraScreen(
-                onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToProfile = { navController.navigate("profile") },
-                onNavigateToMore = { navController.navigate("cameraOption") }
-            )
-        }
-
-
-        composable("CrowdDetection") {
-            CrowdDetectionCameraScreen(
-                crowdDetectionViewModel  = hiltViewModel<CrowdDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
-                onNavigateToAddFace = { navController.navigate("addFace") },
-                onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToProfile = { navController.navigate("profile") },
-                onNavigateToMore = { navController.navigate("cameraOption") }
-            )
-
-        composable("cameraOption"){
-           CameraOptionScreen(
-               navController = navController,
-               onNavigateToFaceDetection = {
-                   navController.navigate("camera")
-               },
-
-               onNavigateToPeopleCounting = {
-                   navController.navigate("peopleCount")
-               }
            )
+        }
+
+        composable("gestureDetection") {
+            GestureDetectionCameraScreen(
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
+        }
+
+        composable("emotionDetection") {
+            EmotionDetectionScreen(
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
         }
 
         composable("objectDetection") {

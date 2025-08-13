@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.myapplication4.ui.components.BottomNavBarPeopleCount
-import com.example.myapplication4.ui.components.DetectionOverlay
+import com.example.myapplication4.ui.components.BottomNavBarMoreOption
+import com.example.myapplication4.ui.components.PeopleCounterDetectionOverlay
 
 @Composable
 fun PeopleCountCameraScreen(
@@ -84,7 +84,7 @@ fun PeopleCountCameraScreen(
 
     Scaffold (
         bottomBar = {
-            BottomNavBarPeopleCount(
+            BottomNavBarMoreOption(
                 onHistoryClick = onNavigateToHistory,
                 onProfileClick = onNavigateToProfile,
                 onMoreClick = onNavigateToMore
@@ -104,7 +104,7 @@ fun PeopleCountCameraScreen(
                 )
 
                 // Gunakan komponen modular DetectionOverlay
-                DetectionOverlay(boundingBoxes = detectedPeople)
+                PeopleCounterDetectionOverlay(boundingBoxes = detectedPeople)
 
                 IconButton(
                     onClick = { viewModel.switchCamera() },

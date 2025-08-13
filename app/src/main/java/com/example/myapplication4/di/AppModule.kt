@@ -22,13 +22,18 @@ import com.example.myapplication4.domain.usecase.VerifyFaceUseCase
 import com.example.myapplication4.domain.usecase.SyncOfflineFacesUseCase
 import okhttp3.OkHttpClient
 import com.google.gson.Gson
+import com.google.mediapipe.tasks.vision.objectdetector.ObjectDetectorResult
+
 import com.example.myapplication4.data.api.WebSocketClient
 import com.example.myapplication4.data.repository.FaceRepository
 import com.example.myapplication4.data.repository.FaceRepositoryImpl
 import com.example.myapplication4.domain.utils.NetworkUtils
-import com.example.myapplication4.face.AddFaceDetector
+import com.example.myapplication4.modelLoad.AddFaceDetector
 import com.example.myapplication4.ui.login.LoginStateViewModel
-import com.example.myapplication4.face.YoloV8PeopleDetector
+import com.example.myapplication4.modelLoad.YoloV8PeopleDetector
+import com.example.myapplication4.modelLoad.YoloV6ActivityDetector
+import com.example.myapplication4.modelLoad.GestureDetector
+import com.example.myapplication4.modelLoad.EmotionDetector
 
 import dagger.Module
 import dagger.Provides
@@ -194,5 +199,23 @@ object AppModule {
     @Singleton
     fun provideYoloV8PeopleDetector(@ApplicationContext context: Context): YoloV8PeopleDetector {
         return YoloV8PeopleDetector(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideYoloV6ActivityDetector(@ApplicationContext context: Context): YoloV6ActivityDetector{
+        return YoloV6ActivityDetector(context)
+    }
+
+    @Singleton
+    @Provides
+    fun provideGestureDetector(@ApplicationContext context: Context): GestureDetector {
+        return GestureDetector(context)
+    }
+
+    @Singleton
+    @Provides
+    fun provideEmotionDetector(@ApplicationContext context: Context): EmotionDetector {
+        return EmotionDetector(context)
     }
 }
