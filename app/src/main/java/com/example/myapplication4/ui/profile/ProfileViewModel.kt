@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/myapplication4/ui/profile/ProfileViewModel.kt
 package com.example.myapplication4.ui.profile
 
 import androidx.lifecycle.ViewModel
@@ -26,6 +27,8 @@ class ProfileViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    // Assuming you have a way to get the current adminId, e.g., from SharedPreferences or LoginStateViewModel
+    // For demonstration, let's use a placeholder. In a real app, this would come from your auth logic.
     private var currentAdminId: String? = null // You need to set this after successful login
 
     fun setAdminId(id: String) {

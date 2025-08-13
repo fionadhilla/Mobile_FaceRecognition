@@ -14,14 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 
+// Definisikan Composable TopBar di sini
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
     title: String,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.primary,
-    titleContentColor: Color = MaterialTheme.colorScheme.onPrimary
+    containerColor: Color = MaterialTheme.colorScheme.primary, // Gunakan warna tema primer
+    titleContentColor: Color = MaterialTheme.colorScheme.onPrimary // Gunakan warna 'onPrimary' untuk teks
 ) {
     TopAppBar(
         title = { Text(text = title, color = titleContentColor) },
@@ -31,12 +32,12 @@ fun TopBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Kembali",
-                    tint = titleContentColor
+                    tint = titleContentColor // Gunakan warna yang sama untuk ikon
                 )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = containerColor
+            containerColor = containerColor // Atur warna latar belakang AppBar
         )
     )
 }

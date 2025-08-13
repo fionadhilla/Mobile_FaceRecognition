@@ -2,7 +2,7 @@ package com.example.myapplication4.domain.usecase
 
 import com.example.myapplication4.data.model.Admin
 import com.example.myapplication4.data.repository.UserProfileRepository
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.first // Import ekstensi .first()
 import javax.inject.Inject
 
 class UpdateUserProfileUseCase @Inject constructor(
@@ -10,7 +10,7 @@ class UpdateUserProfileUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(profile: Admin ): Boolean {
         val adminId = profile.id
-        val username = profile.name
+        val username = profile.name // Asumsi 'name' di Admin.kt Anda adalah username
         val email = profile.email
 
         return repository.updateProfile(adminId, username, email).first().getOrThrow()
