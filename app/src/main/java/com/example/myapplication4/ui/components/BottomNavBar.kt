@@ -92,12 +92,10 @@ fun BottomNavBar(
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Tombol "More" yang kini memanggil onMoreClick
                 IconButton(onClick = onMoreClick) {
                     Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = Color.Black)
                 }
                 Text("More", fontSize = 12.sp, color = Color.Black)
-                // DropdownMenu DIHAPUS dari sini
             }
         }
     }
@@ -113,3 +111,4 @@ fun BottomNavBarPreview() {
         onMoreClick = {}
     )
 }
+

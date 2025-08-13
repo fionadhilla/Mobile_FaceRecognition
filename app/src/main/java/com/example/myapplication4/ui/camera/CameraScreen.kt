@@ -37,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
+import com.example.myapplication4.ui.components.BottomNavBarPeopleCount
 import com.example.myapplication4.ui.components.FaceOverlay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
