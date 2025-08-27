@@ -21,6 +21,11 @@ import com.example.myapplication4.ui.profile.ProfileScreen
 import com.example.myapplication4.ui.activityDetection.ActivityDetectionScreen
 import com.example.myapplication4.ui.gestureDetection.GestureDetectionCameraScreen
 import com.example.myapplication4.ui.emotionDetection.EmotionDetectionScreen
+import com.example.myapplication4.ui.threatDetection.ThreatDetectionScreen
+import com.example.myapplication4.ui.crowd_detection.CrowdDetectionCameraScreen
+import com.example.myapplication4.ui.crowd_detection.CrowdDetectionViewModel
+import com.example.myapplication4.ui.vehicle_detection.VehicleDetectionScreen
+import com.example.myapplication4.ui.vehicle_detection.VehicleDetectionViewModel
 
 @Composable
 fun AppNavGraph(
@@ -117,6 +122,18 @@ fun AppNavGraph(
 
                onNavigateToEmotionDetection = {
                    navController.navigate("emotionDetection")
+               },
+
+               onNavigateToThreatDetection = {
+                    navController.navigate("threatDetection")
+               },
+
+               onNavigateToVehicleDetection = {
+                   navController.navigate("vehicleDetection")
+               },
+
+               onNavigateToCrowdDetection = {
+                   navController.navigate("crowdDetection")
                }
            )
         }
@@ -131,6 +148,32 @@ fun AppNavGraph(
 
         composable("emotionDetection") {
             EmotionDetectionScreen(
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
+        }
+
+        composable("threatDetection") {
+            ThreatDetectionScreen(
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
+        }
+
+        composable("vehicleDetection") {
+            VehicleDetectionScreen(
+                viewModel = hiltViewModel<VehicleDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
+                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToMore = { navController.navigate("cameraOption") }
+            )
+        }
+
+        composable("crowdDetection") {
+            CrowdDetectionCameraScreen(
+                crowdDetectionViewModel  = hiltViewModel<CrowdDetectionViewModel>(viewModelStoreOwner = activityViewModelStoreOwner),
                 onNavigateToHistory = { navController.navigate("history") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onNavigateToMore = { navController.navigate("cameraOption") }

@@ -33,6 +33,7 @@ import com.example.myapplication4.modelLoad.YoloV8PeopleDetector
 import com.example.myapplication4.modelLoad.YoloV6ActivityDetector
 import com.example.myapplication4.modelLoad.GestureDetector
 import com.example.myapplication4.modelLoad.EmotionDetector
+import com.example.myapplication4.modelLoad.ThreatDetector
 
 import dagger.Module
 import dagger.Provides
@@ -125,7 +126,7 @@ object AppModule {
     @Singleton
     fun provideWebSocketClient(okHttpClient: OkHttpClient, gson: Gson): WebSocketClient {
         val websocketClient = WebSocketClient(okHttpClient, gson)
-        websocketClient.connect("ws://192.168.100.47:3000")
+        websocketClient.connect("ws://192.168.32.47:3000")
         return websocketClient
     }
 
@@ -209,4 +210,11 @@ object AppModule {
     fun provideEmotionDetector(@ApplicationContext context: Context): EmotionDetector {
         return EmotionDetector(context)
     }
+
+    @Singleton
+    @Provides
+    fun provideThreatDetector(@ApplicationContext context: Context): ThreatDetector {
+        return ThreatDetector(context)
+    }
+
 }
