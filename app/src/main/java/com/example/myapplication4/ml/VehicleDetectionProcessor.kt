@@ -7,34 +7,39 @@ import android.util.Log
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
+import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
+import org.tensorflow.lite.support.image.ops.ResizeOp
+import org.tensorflow.lite.support.common.ops.NormalizeOp
+import com.example.myapplication4.domain.utils.BoundingBox
+import com.example.myapplication4.domain.utils.applyNMS
 import java.io.IOException
+import kotlin.math.max
 
-
-// Antarmuka generik untuk semua prosesor model
+// Interface generik untuk semua prosesor model
 interface ModelProcessor<T> {
     fun initialize(context: Context)
     fun process(bitmap: Bitmap, rotationDegrees: Int): DetectionResult?
     fun close()
 }
 
-// Implementasi untuk deteksi kendaraan
 class VehicleDetectionProcessor(private val context: Context) : ModelProcessor<Any?> {
+
     private var interpreter: Interpreter? = null
-    private val modelFileName = "vehicle_detection.tflite" // Ganti dengan nama file TFLite Anda
-    private val inputSize = 300 // Ukuran input yang diharapkan oleh model, sesuaikan
-    private val outputBoxes = arrayOf(Array(10) { FloatArray(4) })
-    private val outputClasses = arrayOf(FloatArray(10))
-    private val outputScores = arrayOf(FloatArray(10))
-    private val outputNumDetections = FloatArray(1)
-    private val labels = listOf("vehicle") // Sesuaikan dengan label kelas dari model Anda
+    private val modelFileName = "vehicle_detection.tflite"
+
+    private val inputSize = 416
+    private val outputTensorSize = 7
+    private val numBoxes = 3549
+    private val scoreThreshold = 0.5f
+
+    private val labels = listOf("vehicle")
 
     override fun initialize(context: Context) {
         try {
             val modelBuffer = FileUtil.loadMappedFile(context, modelFileName)
             val options = Interpreter.Options()
-            options.setNumThreads(4) // Atur jumlah thread untuk performa
+            options.setNumThreads(4)
             interpreter = Interpreter(modelBuffer, options)
             Log.d("VehicleProcessor", "Model TFLite $modelFileName berhasil dimuat.")
         } catch (e: IOException) {
@@ -48,44 +53,68 @@ class VehicleDetectionProcessor(private val context: Context) : ModelProcessor<A
             return null
         }
 
-        // Pra-pemrosesan (Preprocessing) gambar
-        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, false)
-        val tensorImage = TensorImage(DataType.UINT8).apply {
-            load(resizedBitmap)
-        }
+        val imageProcessor = ImageProcessor.Builder()
+            .add(ResizeOp(inputSize, inputSize, ResizeOp.ResizeMethod.BILINEAR))
+            .add(NormalizeOp(0.0f, 255.0f))
+            .build()
 
-        // Menjalankan inferensi
-        val inputs = arrayOf(tensorImage.buffer)
-        val outputs = mapOf(
-            0 to outputBoxes,
-            1 to outputClasses,
-            2 to outputScores,
-            3 to outputNumDetections
-        )
-        interpreter?.runForMultipleInputsOutputs(inputs, outputs)
+        val tensorImage = TensorImage(DataType.FLOAT32)
+        tensorImage.load(bitmap)
+        val processedImage = imageProcessor.process(tensorImage)
 
-        // Pasca-pemrosesan (Postprocessing) hasil
-        val results = mutableListOf<RectF>()
-        val resultLabels = mutableListOf<String>()
-        val resultScores = mutableListOf<Float>()
+        val outputBuffer = Array(1) { Array(outputTensorSize) { FloatArray(numBoxes) } }
+        val inputs = arrayOf(processedImage.buffer)
+        interpreter?.runForMultipleInputsOutputs(inputs, mapOf(0 to outputBuffer))
 
-        val numDetections = outputNumDetections[0].toInt()
-        for (i in 0 until numDetections) {
-            val score = outputScores[0][i]
-            if (score > 0.5) { // Thresholding: hanya deteksi dengan skor di atas 50%
-                val box = outputBoxes[0][i]
-                val ymin = box[0] * bitmap.height
-                val xmin = box[1] * bitmap.width
-                val ymax = box[2] * bitmap.height
-                val xmax = box[3] * bitmap.width
+        return postprocessYoloOutput(outputBuffer, bitmap.width, bitmap.height)
+    }
 
-                results.add(RectF(xmin, ymin, xmax, ymax))
-                resultLabels.add(labels.getOrElse(outputClasses[0][i].toInt()) { "Unknown" })
-                resultScores.add(score)
+    private fun postprocessYoloOutput(
+        outputBuffer: Array<Array<FloatArray>>,
+        originalWidth: Int,
+        originalHeight: Int
+    ): DetectionResult {
+        val boxes = mutableListOf<BoundingBox>()
+        val output = outputBuffer[0]
+        val xScale = originalWidth.toFloat() / inputSize.toFloat()
+        val yScale = originalHeight.toFloat() / inputSize.toFloat()
+
+        for (i in 0 until numBoxes) {
+            val x_center = output[0][i] // Perbaikan: output[0][i]
+            val y_center = output[1][i] // Perbaikan: output[1][i]
+            val width = output[2][i]    // Perbaikan: output[2][i]
+            val height = output[3][i]   // Perbaikan: output[3][i]
+            val confidence = output[4][i] // Perbaikan: output[4][i]
+
+            if (confidence > scoreThreshold) {
+                val classProb = output[5][i] // Perbaikan: output[5][i]
+                val score = confidence * classProb
+
+                if (score > scoreThreshold) {
+                    val left = (x_center - width / 2f) * xScale
+                    val top = (y_center - height / 2f) * yScale
+                    val right = (x_center + width / 2f) * xScale
+                    val bottom = (y_center + height / 2f) * yScale
+
+                    boxes.add(
+                        BoundingBox(
+                            rect = RectF(left, top, right, bottom),
+                            confidence = score,
+                            classId = 0
+                        )
+                    )
+                }
             }
         }
 
-        return DetectionResult(results, resultLabels, resultScores)
+        // Non-Maximum Suppression (NMS)
+        val nmsBoxes = applyNMS(boxes, iouThreshold = 0.45f)
+
+        val resultRects = nmsBoxes.map { it.rect }
+        val resultLabels = nmsBoxes.map { labels.getOrElse(it.classId) { "Unknown" } }
+        val resultScores = nmsBoxes.map { it.confidence }
+
+        return DetectionResult(resultRects, resultLabels, resultScores)
     }
 
     override fun close() {

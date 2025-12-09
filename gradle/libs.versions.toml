@@ -44,6 +44,7 @@ hiltWork = "1.2.0"
 room = "2.7.2"
 litertMetadata = "1.4.0"
 litert = "1.4.0"
+litertGpu = "1.4.0"
 
 [libraries]
 # Kotlin & Core
@@ -76,6 +77,7 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 litert-support-api = { group = "com.google.ai.edge.litert", name = "litert-support-api", version.ref = "litertSupportApi" }
 litert-metadata = { group = "com.google.ai.edge.litert", name = "litert-metadata", version.ref = "litertMetadata" }
 litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
+litert-gpu = { group = "com.google.ai.edge.litert", name = "litert-gpu", version.ref = "litertGpu" }
 
 # Lifecycle
 lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycle" }

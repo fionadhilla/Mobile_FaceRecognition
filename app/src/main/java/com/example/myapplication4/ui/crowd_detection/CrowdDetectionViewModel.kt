@@ -2,95 +2,89 @@ package com.example.myapplication4.ui.crowd_detection
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.ImageFormat
 import android.graphics.Matrix
-import android.graphics.YuvImage
+import android.util.Log
+import android.util.Size
+import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageProxy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmapWithoutConverter
 import com.example.myapplication4.ml.CrowdDetectionProcessor
 import com.example.myapplication4.ml.DetectionResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class CrowdDetectionViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
-
     private val crowdProcessor = CrowdDetectionProcessor(context)
 
-    private val _lensFacing = MutableStateFlow(CameraSelector.LENS_FACING_BACK)
-    val lensFacing: StateFlow<Int> = _lensFacing.asStateFlow()
-
     private val _detectionResult = MutableStateFlow<DetectionResult?>(null)
-    val detectionResult: StateFlow<DetectionResult?> = _detectionResult.asStateFlow()
+    val detectionResult = _detectionResult.asStateFlow()
+
+    private val _imageDimensions = MutableStateFlow(Size(0, 0))
+    val imageDimensions = _imageDimensions.asStateFlow()
+
+    private val _lensFacing = MutableStateFlow(CameraSelector.LENS_FACING_BACK)
+    val lensFacing = _lensFacing.asStateFlow()
+
+    private val _isModelLoaded = MutableStateFlow(false)
+    val isModelLoaded = _isModelLoaded.asStateFlow()
 
     init {
-        initializeModel()
-    }
-
-    private fun initializeModel() {
-        crowdProcessor.initialize(context)
-    }
-
-    @androidx.annotation.OptIn(ExperimentalGetImage::class)
-    fun processFrame(imageProxy: ImageProxy) {
-        viewModelScope.launch(Dispatchers.Default) {
-            val bitmap = toBitmapWithoutConverter(imageProxy)
-            if (bitmap != null) {
-                val rotatedBitmap = rotateBitmap(bitmap, imageProxy.imageInfo.rotationDegrees)
-                val result = crowdProcessor.process(rotatedBitmap, imageProxy.imageInfo.rotationDegrees)
-                _detectionResult.value = result
-
-                rotatedBitmap.recycle()
-                bitmap.recycle()
-            }
-            imageProxy.close()
+        viewModelScope.launch(Dispatchers.IO) {
+            crowdProcessor.initialize(context)
+            _isModelLoaded.value = true
         }
     }
 
-    @androidx.annotation.OptIn(ExperimentalGetImage::class)
-    private fun toBitmapWithoutConverter(imageProxy: ImageProxy): Bitmap? {
-        val yBuffer = imageProxy.planes[0].buffer
-        val uBuffer = imageProxy.planes[1].buffer
-        val vBuffer = imageProxy.planes[2].buffer
+    @OptIn(ExperimentalGetImage::class)
+    fun processFrame(imageProxy: ImageProxy) {
+        viewModelScope.launch {
+            try {
+                if (!isModelLoaded.value) {
+                    imageProxy.close()
+                    return@launch
+                }
 
-        val ySize = yBuffer.remaining()
-        val uSize = uBuffer.remaining()
-        val vSize = vBuffer.remaining()
+                _imageDimensions.value = Size(imageProxy.width, imageProxy.height)
 
-        val nv21 = ByteArray(ySize + uSize + vSize)
+                val originalBitmap = withContext(Dispatchers.Default) {
+                    imageProxy.toBitmapWithoutConverter()
+                }
 
-        yBuffer.get(nv21, 0, ySize)
-        vBuffer.get(nv21, ySize, vSize)
-        uBuffer.get(nv21, ySize + vSize, uSize)
+                if (originalBitmap != null) {
+                    val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+                    val rotatedBitmap = withContext(Dispatchers.Default) {
+                        rotateBitmap(originalBitmap, rotationDegrees)
+                    }
 
-        val yuvImage = YuvImage(
-            nv21,
-            ImageFormat.NV21,
-            imageProxy.width,
-            imageProxy.height,
-            null
-        )
-        val out = ByteArrayOutputStream()
-        yuvImage.compressToJpeg(
-            android.graphics.Rect(0, 0, yuvImage.width, yuvImage.height),
-            100,
-            out
-        )
-        val imageBytes = out.toByteArray()
-        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                    val result = withContext(Dispatchers.Default) {
+                        crowdProcessor.process(rotatedBitmap, rotationDegrees)
+                    }
+                    _detectionResult.value = result
+
+                    rotatedBitmap.recycle()
+                    originalBitmap.recycle()
+                } else {
+                    Log.e("CrowdDetectionViewModel", "Bitmap conversion failed.")
+                }
+            } catch (e: Exception) {
+                Log.e("CrowdDetectionViewModel", "Error processing image: ${e.message}")
+            } finally {
+                imageProxy.close()
+            }
+        }
     }
 
     private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {

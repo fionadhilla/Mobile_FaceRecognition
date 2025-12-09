@@ -28,6 +28,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -46,7 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.myapplication4.domain.utils.MediaPipeUtils.toBitmap
-import com.example.myapplication4.ui.components.BottomNavBar
+import com.example.myapplication4.ui.components.BottomNavBarMoreOption
 import com.example.myapplication4.ui.components.VehicleDetectionOverlay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,8 +61,7 @@ fun VehicleDetectionScreen(
     viewModel: VehicleDetectionViewModel = hiltViewModel(), // Menggunakan VehicleDetectionViewModel
     onNavigateToHistory: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToMore: () -> Unit,
-    onNavigateToAddFace: () -> Unit
+    onNavigateToMore: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -78,9 +78,7 @@ fun VehicleDetectionScreen(
     var imageHeight by remember { mutableStateOf(1) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-
-    // Inisialisasi model di ViewModel sudah dilakukan di init block-nya,
-    // jadi di sini tidak perlu memanggil setDetectionProcessor() lagi.
+    val isModelLoaded by viewModel.isModelLoaded.collectAsState()
 
     LaunchedEffect(lensFacing) {
         val cameraProvider = withContext(Dispatchers.Main) {
@@ -121,11 +119,9 @@ fun VehicleDetectionScreen(
 
     Scaffold(
         bottomBar = {
-            BottomNavBar(
-                onAddClick = onNavigateToAddFace,
+            BottomNavBarMoreOption(
                 onHistoryClick = onNavigateToHistory,
                 onProfileClick = onNavigateToProfile,
-
                 onMoreClick = onNavigateToMore
             )
         },
@@ -153,7 +149,33 @@ fun VehicleDetectionScreen(
                     imageHeight = imageHeight,
                     isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
                 )
+                if (isModelLoaded) {
+                    val firstDetection = detectionResult?.boundingBoxes?.firstOrNull()?.let { box ->
+                        detectionResult?.labels?.getOrNull(0)?.let { label ->
+                            detectionResult?.scores?.getOrNull(0)?.let { score ->
+                                object {
+                                    val label = label
+                                    val score = score
+                                }
+                            }
+                        }
+                    }
 
+                    val displayText = if (firstDetection != null) {
+                        "Kendaraan Terdeteksi: ${firstDetection.label} (${"%.2f".format(firstDetection.score)})"
+                    } else {
+                        "Tidak ada Kendaraan terdeteksi"
+                    }
+                    Text(
+                        text = displayText,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                        color = if (firstDetection != null) Color.Red else Color.Green,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
                 IconButton(
                     onClick = { viewModel.switchCamera() },
                     modifier = Modifier

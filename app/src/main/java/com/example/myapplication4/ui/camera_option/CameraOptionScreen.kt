@@ -5,12 +5,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,16 +27,34 @@ fun CameraOptionScreen(
     onNavigateToPeopleCounting: () -> Unit,
     onNavigateToActivityDetection: () -> Unit,
     onNavigateToGestureDetection: () -> Unit,
-    onNavigateToEmotionDetection: () -> Unit
-    onNavigateToObjectDetection: () -> Unit,
+    onNavigateToEmotionDetection: () -> Unit,
+    onNavigateToThreatDetection: () -> Unit,
     onNavigateToVehicleDetection: () -> Unit,
-    onNavigateToAnomalyDetection: () -> Unit,
-    onNavigateToCrowdDetection: () -> Unit,
+    onNavigateToCrowdDetection: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Pilih Mode Kamera") }
+    val state = rememberScrollState()
+    LaunchedEffect(Unit) { state.animateScrollTo(100) }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
+            .verticalScroll(state)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Back",
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { navController.popBackStack() }
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = "More Detection Option",
+                style = MaterialTheme.typography.headlineMedium
             )
         }
     ) { paddingValues ->
@@ -52,7 +73,10 @@ fun CameraOptionScreen(
               onClick = onNavigateToFaceDetection
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+        DetectionButton(
+            text = "Face Detection",
+            onClick = onNavigateToFaceDetection
+        )
 
             // Tombol Object Detection
             Button(
@@ -65,7 +89,10 @@ fun CameraOptionScreen(
             }
    
 
-            Spacer(modifier = Modifier.height(16.dp))
+        DetectionButton(
+            text = "Vehicle Detection",
+            onClick = onNavigateToVehicleDetection
+        )
 
             Button(
                 onClick = onNavigateToVehicleDetection,
@@ -76,17 +103,12 @@ fun CameraOptionScreen(
                 Text("Deteksi Kendaraan")
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-        
-            Button(
-                onClick = onNavigateToAnomalyDetection,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                Text("Deteksi Anomali")
-            }
+//        DetectionButton(
+//            text = "Anomaly Detection",
+//            onClick = { navController.navigate("anomalyDetection") }
+//        )
+//
+//        Spacer(modifier = Modifier.height(24.dp))
 
         DetectionButton(
             text = "People Counting",
@@ -113,17 +135,20 @@ fun CameraOptionScreen(
             text = "Emotion Detection",
             onClick = onNavigateToEmotionDetection
         )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-            Button(
-                onClick = onNavigateToCrowdDetection,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                Text("Deteksi Keramaian")
-            }
-        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "Threat Detection",
+            onClick = onNavigateToThreatDetection
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DetectionButton(
+            text = "Crowd Detection",
+            onClick = onNavigateToCrowdDetection
+        )
     }
 }
 

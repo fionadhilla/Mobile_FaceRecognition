@@ -31,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.myapplication4.ui.components.BottomNavBar
+import com.example.myapplication4.ui.components.BottomNavBarMoreOption
 import com.example.myapplication4.ui.components.CrowdDetectionOverlay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -64,13 +65,14 @@ fun CrowdDetectionCameraScreen(
     crowdDetectionViewModel: CrowdDetectionViewModel = hiltViewModel(),
     onNavigateToHistory: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToMore: () -> Unit = {},
-    onNavigateToAddFace: () -> Unit = {}
+    onNavigateToMore: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
-
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val isModelLoaded by crowdDetectionViewModel.isModelLoaded.collectAsState()
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -96,58 +98,11 @@ fun CrowdDetectionCameraScreen(
     val lensFacing by crowdDetectionViewModel.lensFacing.collectAsState()
     val detectionResult by crowdDetectionViewModel.detectionResult.collectAsState()
     val imageCapture = remember { ImageCapture.Builder().build() }
-    var imageWidth by remember { mutableStateOf(1) }
-    var imageHeight by remember { mutableStateOf(1) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(lensFacing, hasCameraPermission) {
-        if (hasCameraPermission) {
-            val cameraProvider = withContext(Dispatchers.Main) {
-                ProcessCameraProvider.getInstance(context).get()
-            }
-            val previewView = PreviewView(context).also {
-                it.scaleType = PreviewView.ScaleType.FILL_CENTER
-            }
-            val preview = Preview.Builder().build().apply {
-                setSurfaceProvider(previewView.surfaceProvider)
-            }
-
-            val selector = CameraSelector.Builder()
-                .requireLensFacing(lensFacing)
-                .build()
-
-            val imageAnalyzer = ImageAnalysis.Builder()
-                .setTargetResolution(Size(previewView.width, previewView.height))
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also { analysis ->
-                    analysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                        crowdDetectionViewModel.processFrame(imageProxy)
-                        imageWidth = imageProxy.width
-                        imageHeight = imageProxy.height
-                    }
-                }
-
-            try {
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    lifecycleOwner,
-                    selector,
-                    preview,
-                    imageCapture,
-                    imageAnalyzer
-                )
-            } catch (e: Exception) {
-                Log.e("CrowdDetectionScreen", "Camera binding failed", e)
-            }
-        }
-    }
+    val imageDimensions by crowdDetectionViewModel.imageDimensions.collectAsState()
 
     Scaffold(
         bottomBar = {
-            BottomNavBar(
-                onAddClick = onNavigateToAddFace,
+            BottomNavBarMoreOption(
                 onHistoryClick = onNavigateToHistory,
                 onProfileClick = onNavigateToProfile,
                 onMoreClick = onNavigateToMore
@@ -167,22 +122,84 @@ fun CrowdDetectionCameraScreen(
                     .fillMaxWidth()
             ) {
                 if (hasCameraPermission) {
-                    AndroidView(
-                        factory = {
-                            PreviewView(context).also {
-                                it.scaleType = PreviewView.ScaleType.FILL_CENTER
+                    val previewView = remember { PreviewView(context) }
+                    LaunchedEffect(lensFacing) {
+                        val cameraProvider = withContext(Dispatchers.Main) {
+                            ProcessCameraProvider.getInstance(context).get()
+                        }
+
+                        cameraProvider.unbindAll()
+
+                        val preview = Preview.Builder().build().apply {
+                            setSurfaceProvider(previewView.surfaceProvider)
+                        }
+
+                        val selector = CameraSelector.Builder()
+                            .requireLensFacing(lensFacing)
+                            .build()
+
+                        val imageAnalyzer = ImageAnalysis.Builder()
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .build()
+                            .also { analysis ->
+                                analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                                    crowdDetectionViewModel.processFrame(imageProxy)
+                                }
                             }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                        update = { previewView -> }
+
+                        try {
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                selector,
+                                preview,
+                                imageCapture,
+                                imageAnalyzer
+                            )
+                        } catch (e: Exception) {
+                            Log.e("CrowdDetectionScreen", "Camera binding failed", e)
+                        }
+                    }
+
+                    AndroidView(
+                        factory = { previewView },
+                        modifier = Modifier.fillMaxSize()
                     )
+
                     CrowdDetectionOverlay(
                         modifier = Modifier.fillMaxSize(),
                         detectionResult = detectionResult,
-                        imageWidth = imageWidth,
-                        imageHeight = imageHeight,
+                        imageWidth = imageDimensions.width,
+                        imageHeight = imageDimensions.height,
                         isFrontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
                     )
+
+                    if (isModelLoaded) {
+                        val firstDetection = detectionResult?.boundingBoxes?.firstOrNull()?.let { box ->
+                            detectionResult?.labels?.getOrNull(0)?.let { label ->
+                                detectionResult?.scores?.getOrNull(0)?.let { score ->
+                                    object {
+                                        val label = label
+                                        val score = score
+                                    }
+                                }
+                            }
+                        }
+
+                        val displayText = if (firstDetection != null) {
+                            "Kerumunan Yang Terdeteksi: ${firstDetection.label} (${"%.2f".format(firstDetection.score)})"
+                        } else {
+                            "Tidak ada kerumunan terdeteksi"
+                        }
+                        Text(
+                            text = displayText,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                            color = if (firstDetection != null) Color.Red else Color.Green,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
 
                     IconButton(
                         onClick = { crowdDetectionViewModel.switchCamera() },

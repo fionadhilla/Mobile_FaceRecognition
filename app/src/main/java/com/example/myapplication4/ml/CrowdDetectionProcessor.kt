@@ -7,21 +7,25 @@ import android.util.Log
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
+import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
+import org.tensorflow.lite.support.image.ImageProcessor
+import org.tensorflow.lite.support.image.ops.ResizeOp
+import com.example.myapplication4.domain.utils.BoundingBox
+import com.example.myapplication4.domain.utils.applyNMS
 import java.io.IOException
 
-// Menggunakan interface ModelProcessor yang sudah ada.
 class CrowdDetectionProcessor(private val context: Context) : ModelProcessor<DetectionResult> {
+
     private var interpreter: Interpreter? = null
     private val modelFileName = "yolov8s_float32_crowd.tflite"
     private val inputSize = 640
+    private val scoreThreshold = 0.5f // Sesuaikan ambang batas kepercayaan
     private val labels = listOf("crowd")
 
-    private val outputBoxes = arrayOf(Array(25200) { FloatArray(4) })
-    private val outputClasses = arrayOf(FloatArray(25200))
-    private val outputScores = arrayOf(FloatArray(25200))
-    private val outputNumDetections = FloatArray(1)
+    // Variabel untuk ukuran output
+    private val outputTensorSize = 84
+    private val numBoxes = 8400
 
     override fun initialize(context: Context) {
         try {
@@ -41,39 +45,65 @@ class CrowdDetectionProcessor(private val context: Context) : ModelProcessor<Det
             return null
         }
 
-        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, false)
-        val tensorImage = TensorImage(DataType.FLOAT32).apply {
-            load(resizedBitmap)
-        }
+        // Pra-pemrosesan gambar menggunakan ImageProcessor
+        val imageProcessor = ImageProcessor.Builder()
+            .add(ResizeOp(inputSize, inputSize, ResizeOp.ResizeMethod.BILINEAR))
+            .add(NormalizeOp(0.0f, 255.0f))
+            .build()
 
-        val outputs = mapOf(
-            0 to outputBoxes,
-            1 to outputClasses,
-            2 to outputScores,
-            3 to outputNumDetections
-        )
-        interpreter?.runForMultipleInputsOutputs(arrayOf(tensorImage.buffer), outputs)
+        val tensorImage = TensorImage(DataType.FLOAT32)
+        tensorImage.load(bitmap)
+        val processedImage = imageProcessor.process(tensorImage)
 
-        val results = mutableListOf<RectF>()
-        val resultLabels = mutableListOf<String>()
-        val resultScores = mutableListOf<Float>()
+        // Output model: [1, 84, 8400]
+        val outputBuffer = Array(1) { Array(outputTensorSize) { FloatArray(numBoxes) } }
+        val inputs = arrayOf(processedImage.buffer)
+        interpreter?.runForMultipleInputsOutputs(inputs, mapOf(0 to outputBuffer))
 
-        val numDetections = outputNumDetections[0].toInt()
-        for (i in 0 until numDetections) {
-            val score = outputScores[0][i]
-            if (score > 0.5) {
-                val box = outputBoxes[0][i]
-                val ymin = box[0] * bitmap.height
-                val xmin = box[1] * bitmap.width
-                val ymax = box[2] * bitmap.height
-                val xmax = box[3] * bitmap.width
+        return postprocessYoloOutput(outputBuffer, bitmap.width, bitmap.height)
+    }
 
-                results.add(RectF(xmin, ymin, xmax, ymax))
-                resultLabels.add(labels.getOrElse(outputClasses[0][i].toInt()) { "Unknown" })
-                resultScores.add(score)
+    private fun postprocessYoloOutput(
+        outputBuffer: Array<Array<FloatArray>>,
+        originalWidth: Int,
+        originalHeight: Int
+    ): DetectionResult {
+        val boxes = mutableListOf<BoundingBox>()
+        val output = outputBuffer[0]
+        val xScale = originalWidth.toFloat() / inputSize.toFloat()
+        val yScale = originalHeight.toFloat() / inputSize.toFloat()
+
+        for (i in 0 until numBoxes) {
+            val x_center = output[0][i]
+            val y_center = output[1][i]
+            val width = output[2][i]
+            val height = output[3][i]
+
+            val score = output[4][i]
+
+            if (score > scoreThreshold) {
+                val left = (x_center - width / 2f) * xScale
+                val top = (y_center - height / 2f) * yScale
+                val right = (x_center + width / 2f) * xScale
+                val bottom = (y_center + height / 2f) * yScale
+
+                boxes.add(
+                    BoundingBox(
+                        rect = RectF(left, top, right, bottom),
+                        confidence = score,
+                        classId = 0
+                    )
+                )
             }
         }
-        return DetectionResult(results, resultLabels, resultScores)
+
+        val nmsBoxes = applyNMS(boxes, iouThreshold = 0.45f)
+
+        val resultRects = nmsBoxes.map { it.rect }
+        val resultLabels = nmsBoxes.map { labels.getOrElse(it.classId) { "Unknown" } }
+        val resultScores = nmsBoxes.map { it.confidence }
+
+        return DetectionResult(resultRects, resultLabels, resultScores)
     }
 
     override fun close() {

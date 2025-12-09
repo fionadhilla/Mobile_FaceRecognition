@@ -18,7 +18,6 @@ import com.example.myapplication4.ml.DetectionResult // Tambahkan import ini
 import com.example.myapplication4.ui.camera.CameraPreviewTransformer
 import com.google.mediapipe.tasks.vision.core.RunningMode // Tambahkan import ini
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 fun VehicleDetectionOverlay(
     modifier: Modifier = Modifier,
