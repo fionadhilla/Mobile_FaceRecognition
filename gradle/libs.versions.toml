@@ -1,17 +1,39 @@
 [versions]
 agp = "8.7.1"
+
+# AndroidX & Jetpack
 hiltAndroid = "2.56.2"
 hiltCompiler = "2.56.2"
 hiltNavigationCompose = "1.2.0"
 kotlin = "2.2.0"
 coreKtx = "1.16.0"
-junit = "4.13.2"
-junitVersion = "1.2.1"
-espressoCore = "3.6.1"
 appcompat = "1.7.1"
 material = "1.12.0"
 activity = "1.10.1"
 constraintlayout = "2.2.1"
+lifecycle = "2.2.0"
+camerax = "1.1.0-beta01"
+navigation = "2.7.7"
+
+# Test
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+
+# Google & Accompanist
+gson = "2.10.1"
+okhttp = "4.12.0"
+accompanistPermissions = "0.33.2-alpha"
+
+# Media & ML
+playServicesMlkit = "17.1.0"
+mediapipeTasksVision = "0.10.21"
+media3CommonKtx = "1.7.1"
+workRuntimeKtx = "2.10.2"
+hiltCommon = "1.2.0"
+hiltWork = "1.2.0"
+litert = "1.4.0"
+litertSupportApi = "1.4.0"
 material3Android = "1.3.2"
 tasksVision = "0.10.26"
 playServicesMlkitFaceDetection = "17.1.0"
@@ -20,28 +42,33 @@ workRuntimeKtx = "2.10.2"
 hiltCommon = "1.2.0"
 hiltWork = "1.2.0"
 room = "2.7.2"
-litertSupportApi = "1.4.0"
 litertMetadata = "1.4.0"
 litert = "1.4.0"
 litertGpu = "1.4.0"
 
 [libraries]
+# Kotlin & Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
-hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltCompiler" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
-tasks-vision = { module = "com.google.mediapipe:tasks-vision", version.ref = "tasksVision" }
-play-services-mlkit-face-detection = { group = "com.google.android.gms", name = "play-services-mlkit-face-detection", version.ref = "playServicesMlkitFaceDetection" }
-androidx-media3-common-ktx = { group = "androidx.media3", name = "media3-common-ktx", version.ref = "media3CommonKtx" }
-androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+
+# Jetpack Compose
+compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compose-ui" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "compose-ui" }
+compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity" }
+compose-material = { group = "androidx.compose.material", name = "material", version.ref = "compose-ui" }
+navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
+androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3" }
+
+# Hilt
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
 androidx-hilt-common = { group = "androidx.hilt", name = "hilt-common", version.ref = "hiltCommon" }
 androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
@@ -51,6 +78,43 @@ litert-support-api = { group = "com.google.ai.edge.litert", name = "litert-suppo
 litert-metadata = { group = "com.google.ai.edge.litert", name = "litert-metadata", version.ref = "litertMetadata" }
 litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
 litert-gpu = { group = "com.google.ai.edge.litert", name = "litert-gpu", version.ref = "litertGpu" }
+
+# Lifecycle
+lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycle" }
+lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+
+# CameraX
+camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+camera-video = { group = "androidx.camera", name = "camera-video", version.ref = "camerax" }
+camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+camera-extensions = { group = "androidx.camera", name = "camera-extensions", version.ref = "camerax" }
+
+# Room
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+
+# Accompanist
+accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanistPermissions" }
+
+# ML/Media
+play-services-mlkit-face-detection = { group = "com.google.android.gms", name = "play-services-mlkit-face-detection", version.ref = "playServicesMlkit" }
+tasks-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipeTasksVision" }
+androidx-media3-common-ktx = { group = "androidx.media3", name = "media3-common-ktx", version.ref = "media3Common" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntime" }
+
+# Utils
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+
+# Test
+junit = { group = "junit", name = "junit", version = "4.13.2" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version = "1.1.5" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version = "3.5.1" }
+litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
+litert-support-api = { group = "com.google.ai.edge.litert", name = "litert-support-api", version.ref = "litertSupportApi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

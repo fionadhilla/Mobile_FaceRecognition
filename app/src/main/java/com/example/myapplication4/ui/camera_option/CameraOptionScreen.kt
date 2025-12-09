@@ -1,5 +1,7 @@
 package com.example.myapplication4.ui.camera_option
 
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -55,22 +57,51 @@ fun CameraOptionScreen(
                 style = MaterialTheme.typography.headlineMedium
             )
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
 
-        Spacer(modifier = Modifier.height(40.dp))
+            DetectionButton(
+              text = "Face Detection",
+              onClick = onNavigateToFaceDetection
+            )
 
         DetectionButton(
             text = "Face Detection",
             onClick = onNavigateToFaceDetection
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            // Tombol Object Detection
+            Button(
+                onClick = onNavigateToObjectDetection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Deteksi Objek")
+            }
+   
 
         DetectionButton(
             text = "Vehicle Detection",
             onClick = onNavigateToVehicleDetection
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onNavigateToVehicleDetection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Deteksi Kendaraan")
+            }
 
 //        DetectionButton(
 //            text = "Anomaly Detection",

@@ -29,7 +29,7 @@ fun LoginScreen(
     val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
     val isLoggingIn by viewModel.isLoggingIn.collectAsState()
-    LaunchedEffect(isLoggingIn) { //
+    LaunchedEffect(isLoggingIn) { // <-- Tambahkan LaunchedEffect ini
         Log.d("LoginScreen", "isLoggingIn state changed to: $isLoggingIn")
     }
     val loginError by viewModel.loginError.collectAsState()
@@ -73,7 +73,7 @@ fun LoginScreen(
                 onValueChange = viewModel::onEmailChange,
                 label = { Text("Email", color = textColor) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), // Keyboard type for email
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = LocalTextStyle.current.copy(color = textColor)
             )

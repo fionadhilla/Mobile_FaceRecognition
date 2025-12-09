@@ -1,13 +1,12 @@
 package com.example.myapplication4.data.repository
 
-
 import android.util.Log
-import com.example.myapplication4.data.api.WebSocketClient
-import com.google.gson.JsonSyntaxException
-import kotlinx.coroutines.flow.first
+import com.example.myapplication4.data.api.WebSocketAuthService
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 @Singleton
 class LoginRepositoryImpl @Inject constructor(
@@ -15,7 +14,8 @@ class LoginRepositoryImpl @Inject constructor(
 ) : LoginRepository {
     private val TAG = "LoginRepositoryImpl"
 
-    private val WEBSOCKET_URL = "ws://192.168.100.47:3000"
+
+    private val WEBSOCKET_URL = "ws://192.168.1.6:3000"
 
     override suspend fun loginUser(email: String, password: String): Result<String> {
         Log.d(TAG, "Attempting to login user: $email")
@@ -47,7 +47,7 @@ class LoginRepositoryImpl @Inject constructor(
                     false
                 }
             }
-
+            
             val jsonResponse = JSONObject(responseText)
             val success = jsonResponse.optBoolean("success")
             val message = jsonResponse.optString("message")

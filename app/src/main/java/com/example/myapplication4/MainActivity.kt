@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication4.navigation.AppNavGraph
 import com.example.myapplication4.ui.login.LoginStateViewModel
@@ -18,9 +17,13 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 import com.example.myapplication4.background.FaceSyncWorker
+import androidx.activity.viewModels
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    val loginStateViewModel: LoginStateViewModel by viewModels()
+
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +50,7 @@ class MainActivity : ComponentActivity() {
 
             if (cameraPermissionState.status.isGranted) {
                 val navController = rememberNavController()
-                val loginStateViewModel: LoginStateViewModel = viewModel()
+                // val loginStateViewModel: LoginStateViewModel = viewModel()
                 val isLoggedIn by loginStateViewModel.isLoggedIn.collectAsState()
                 AppNavGraph(
                     navController,
